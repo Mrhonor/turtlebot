@@ -1,5 +1,13 @@
+#ifndef _ARUCO_LISTENER_H_
+#define _ARUCO_LISTENER_H_
+
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "sensor_msgs/Image.h"
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #define PI 3.1415926535
 #define LU 0
@@ -9,7 +17,24 @@
 #define X  0
 #define Y  1
 
-void aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+using namespace std;
+
+
+class aruco_listener
+{
+    private:
+        double point[4][2];
+        cv_bridge::CvImagePtr aruco_img_ptr;
+    public:
+        aruco_listener(ros::NodeHandle &);
+        ~aruco_listener();
+        void aruco_poseCallback (const geometry_msgs::PoseStamped::ConstPtr& msg);
+        void aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg);
+        void aruco_process();
+        
+};
+
+void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
 	ROS_INFO("WELCOME");
 	double orientation_x = msg->pose.orientation.x;
@@ -32,7 +57,6 @@ void aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 
 	roll = (roll > 0) ? roll - 180 : roll + 180;
 
-	double point[4][2] = {0};
 	point[LU][X] =-size/2 * pow(2, 0.5) * cos((45 + pitch) / 180) * cos(yaw / 180)  + position_x;
 	point[LU][Y] = size/2 * pow(2, 0.5) * sin((45 + pitch) / 180) * cos(roll/ 180) + position_y;
 	
@@ -53,16 +77,34 @@ void aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
     ROS_INFO("point[RD][X] = %lf, point[RD][Y] = %lf ", point[RD][X], point[RD][Y]); 
 }
 
-int main(int argc, char **argv)
+void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
-	ros::init(argc, argv, "aruco_listener");
-
-	ros::NodeHandle n;
-	ROS_INFO("START 1");
-	ros::Subscriber sub = n.subscribe("/aruco_single/pose", 10, aruco_poseCallback);
-	ROS_INFO("START 2");
-
-	ros::spin();
-
-	return 0;
+    aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+	cv::Point2d point_cv[4];
+	point_cv[LU].x = point[LU][X];
+	point_cv[LU].y = point[LU][Y];
+	point_cv[RU].x = point[RU][X];
+	point_cv[RU].y = point[RU][Y];
+	point_cv[LD].x = point[LD][X];
+	point_cv[LD].y = point[LD][Y];
+	point_cv[RD].x = point[RD][X];
+	point_cv[RD].y = point[RD][Y];
+	cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
+	cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
+	cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
+	cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
+	
+	cv::imshow("aruco_listener", aruco_img_ptr->image);
 }
+
+aruco_listener::aruco_listener(ros::NodeHandle &n)
+{
+	ros::Subscriber sub_pose  = n.subscribe("/aruco_single/pose"     , 10, &aruco_listener::aruco_poseCallback,  this);
+	ros::Subscriber sub_image = n.subscribe("/camera/color/image_raw", 10, &aruco_listener::aruco_imageCallback, this);
+}
+
+aruco_listener::~aruco_listener()
+{
+
+}
+#endif
