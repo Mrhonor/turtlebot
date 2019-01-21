@@ -1,12 +1,15 @@
 #ifndef _ARUCO_LISTENER_H_
 #define _ARUCO_LISTENER_H_
 
+// ros core
 #include "ros/ros.h"
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+// msg
 #include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/CameraInfo.h"
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
+// opencv
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -36,6 +39,8 @@ class aruco_listener
 		ros::Subscriber sub_pose;  
 		ros::Subscriber sub_image; 
 		ros::Subscriber sub_info;  
+		ros::Publisher pub_result;
+
     public:
         aruco_listener(ros::NodeHandle &);
         ~aruco_listener();
@@ -89,6 +94,8 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
     ROS_INFO("point[RU][X] = %lf, point[RU][Y] = %lf ", point[RU][X], point[RU][Y]);
     ROS_INFO("point[LD][X] = %lf, point[LD][Y] = %lf ", point[LD][X], point[LD][Y]);
     ROS_INFO("point[RD][X] = %lf, point[RD][Y] = %lf ", point[RD][X], point[RD][Y]); 
+
+	aruco_process();
 }
 
 void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
@@ -106,16 +113,13 @@ void aruco_listener::aruco_camera_infoCallback(const sensor_msgs::CameraInfo::Co
 
 aruco_listener::aruco_listener(ros::NodeHandle &n)
 {
-	ros::Rate loop_rate(10);
-	while(ros::ok())
-	{	
-		sub_pose  = n.subscribe("/aruco_single/pose"       , 10, &aruco_listener::aruco_poseCallback       ,  this);
-		sub_image = n.subscribe("/camera/color/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
-		sub_info  = n.subscribe("/camera/color/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
-		aruco_process();
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
+	ROS_INFO("init");
+	
+	sub_pose  = n.subscribe("/aruco_single/pose"       , 10, &aruco_listener::aruco_poseCallback       , this);
+	sub_image = n.subscribe("/camera/color/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
+	sub_info  = n.subscribe("/camera/color/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
+
+	pub_result = n.advertise<sensor_msgs::Image>("/lion_eyes/result", 10);
 }
 
 void aruco_listener::aruco_process()
@@ -135,6 +139,8 @@ void aruco_listener::aruco_process()
 	cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
 	
 	cv::imshow("aruco_listener", aruco_img_ptr->image);
+
+	pub_result.publish(aruco_img_ptr->toImageMsg());
 }
 
 aruco_listener::~aruco_listener()

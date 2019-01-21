@@ -9,7 +9,10 @@ int main(int argc, char **argv)
 	ROS_INFO("START ");
 	aruco_listener aruco_node(n);
 
-	ros::spin();
+	
+    ros::AsyncSpinner spinner(4);
+    spinner.start();
+    ros::waitForShutdown();
 
 	return 0;
 }
