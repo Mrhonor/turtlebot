@@ -133,14 +133,21 @@ void aruco_listener::aruco_process()
 	point_cv[LD].y = point[LD][Y] * fy / distance + cy;
 	point_cv[RD].x = point[RD][X] * fx / distance + cx;
 	point_cv[RD].y = point[RD][Y] * fy / distance + cy;
-	cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
-	cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
-	cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
-	cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
-	
-	cv::imshow("aruco_listener", aruco_img_ptr->image);
 
-	pub_result.publish(aruco_img_ptr->toImageMsg());
+	try {
+		cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
+		
+		cv::imshow("aruco_listener", aruco_img_ptr->image);
+	}
+	catch(...)
+	{
+		ROS_ERROR_STREAM("error");
+	}
+
+	//pub_result.publish(aruco_img_ptr->toImageMsg());
 }
 
 aruco_listener::~aruco_listener()
