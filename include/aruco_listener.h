@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/Image.h"
+#include "sensor_msgs/CameraInfo.h"
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -24,12 +25,23 @@ class aruco_listener
 {
     private:
         double point[4][2];
-        cv_bridge::CvImagePtr aruco_img_ptr;
+		double distance;
+		double fx;
+		double fy;
+		double cx;
+		double cy;
+
+		cv_bridge::CvImagePtr aruco_img_ptr;
+
+		ros::Subscriber sub_pose;  
+		ros::Subscriber sub_image; 
+		ros::Subscriber sub_info;  
     public:
         aruco_listener(ros::NodeHandle &);
         ~aruco_listener();
         void aruco_poseCallback (const geometry_msgs::PoseStamped::ConstPtr& msg);
         void aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg);
+		void aruco_camera_infoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
         void aruco_process();
         
 };
@@ -44,7 +56,7 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 	double position_x    = msg->pose.position.x;
 	double position_y    =-msg->pose.position.y;
 	double position_z    = msg->pose.position.z;
-	double size          = 0.025;   // 0.025m
+	double size          = 0.25;   // 0.25m
 
 	ROS_INFO("Orientation : w = %lf , x = %lf , y = %lf , z = %lf", orientation_w, orientation_x, orientation_y, orientation_z); 
 	ROS_INFO("position :  x = %lf , y = %lf , z = %lf", position_x, position_y, position_z);
@@ -69,6 +81,8 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 	point[RD][X] = size/2 * pow(2, 0.5) * cos((45 - pitch) / 180) * cos(yaw / 180)  + position_x;
 	point[RD][Y] =-size/2 * pow(2, 0.5) * sin((45 - pitch) / 180) * cos(roll/ 180) + position_y;
 	
+	distance     = position_z;
+
 	ROS_INFO("roll = %lf , yaw = %lf , pitch = %lf, camera_pitch = %lf", roll, yaw, pitch,  camera_pitch); 
 
     ROS_INFO("point[LU][X] = %lf, point[LU][Y] = %lf ", point[LU][X], point[LU][Y]);
@@ -80,27 +94,47 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
     aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+}
+
+void aruco_listener::aruco_camera_infoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
+{
+	fx = msg->K[0];
+	cx = msg->K[2];
+	fy = msg->K[4];
+	cy = msg->K[5];
+}
+
+aruco_listener::aruco_listener(ros::NodeHandle &n)
+{
+	ros::Rate loop_rate(10);
+	while(ros::ok())
+	{	
+		sub_pose  = n.subscribe("/aruco_single/pose"       , 10, &aruco_listener::aruco_poseCallback       ,  this);
+		sub_image = n.subscribe("/camera/color/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
+		sub_info  = n.subscribe("/camera/color/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
+		aruco_process();
+		ros::spinOnce();
+		loop_rate.sleep();
+	}
+}
+
+void aruco_listener::aruco_process()
+{
 	cv::Point2d point_cv[4];
-	point_cv[LU].x = point[LU][X];
-	point_cv[LU].y = point[LU][Y];
-	point_cv[RU].x = point[RU][X];
-	point_cv[RU].y = point[RU][Y];
-	point_cv[LD].x = point[LD][X];
-	point_cv[LD].y = point[LD][Y];
-	point_cv[RD].x = point[RD][X];
-	point_cv[RD].y = point[RD][Y];
+	point_cv[LU].x = point[LU][X] * fx / distance + cx;
+	point_cv[LU].y = point[LU][Y] * fy / distance + cy;
+	point_cv[RU].x = point[RU][X] * fx / distance + cx;
+	point_cv[RU].y = point[RU][Y] * fy / distance + cy;
+	point_cv[LD].x = point[LD][X] * fx / distance + cx;
+	point_cv[LD].y = point[LD][Y] * fy / distance + cy;
+	point_cv[RD].x = point[RD][X] * fx / distance + cx;
+	point_cv[RD].y = point[RD][Y] * fy / distance + cy;
 	cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
 	cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
 	cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
 	cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
 	
 	cv::imshow("aruco_listener", aruco_img_ptr->image);
-}
-
-aruco_listener::aruco_listener(ros::NodeHandle &n)
-{
-	ros::Subscriber sub_pose  = n.subscribe("/aruco_single/pose"     , 10, &aruco_listener::aruco_poseCallback,  this);
-	ros::Subscriber sub_image = n.subscribe("/camera/color/image_raw", 10, &aruco_listener::aruco_imageCallback, this);
 }
 
 aruco_listener::~aruco_listener()
