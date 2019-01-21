@@ -142,6 +142,7 @@ void aruco_listener::aruco_process()
 		
 		aruco_img_ptr->image = cv::imread("~/catkin_ws/src/aruco_listener/resource/image.png");
 		cv::imshow("aruco_listener", aruco_img_ptr->image);
+		cv::waitKey(10);
 	}
 	catch(...)
 	{
