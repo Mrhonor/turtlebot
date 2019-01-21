@@ -100,7 +100,14 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 
 void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
-    aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+
+	try {
+		aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+	}
+	catch(...)
+	{
+		ROS_ERROR_STREAM("callback error");
+	}
 }
 
 void aruco_listener::aruco_camera_infoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
@@ -135,21 +142,17 @@ void aruco_listener::aruco_process()
 	point_cv[RD].y = point[RD][Y] * fy / distance + cy;
 
 	try {
-		// cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
-		// cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
-		// cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
-		// cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
-		
-		aruco_img_ptr->image = cv::imread("~/catkin_ws/src/aruco_listener/resource/image.png");
-		cv::imshow("aruco_listener", aruco_img_ptr->image);
-		cv::waitKey(10);
+		cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
+
+		pub_result.publish(aruco_img_ptr->toImageMsg());
 	}
 	catch(...)
 	{
-		ROS_ERROR_STREAM("error");
+		ROS_ERROR_STREAM("process error");
 	}
-
-	//pub_result.publish(aruco_img_ptr->toImageMsg());
 }
 
 aruco_listener::~aruco_listener()
