@@ -9,7 +9,11 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     message_generation
     OpenCV
+<<<<<<< HEAD
     Eigen3
+=======
+    
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 )
 
 add_message_files(
@@ -49,7 +53,10 @@ add_executable(aruco_listener
 
 target_link_libraries(aruco_listener 
     ${catkin_LIBRARIES}
+<<<<<<< HEAD
 	Eigen3::Eigen
+=======
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 )
 
 

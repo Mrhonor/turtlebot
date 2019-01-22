@@ -12,6 +12,7 @@
 // opencv
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -22,7 +23,7 @@
 #define LD 2
 #define RD 3
 #define X  0
-#define Y  1add_message_files(
+#define Y  1
 #define Z  2
 
 using namespace std;
@@ -31,11 +32,14 @@ using namespace std;
 class aruco_listener
 {
     private:
+
         double point[4][3];
+
 		double fx;
 		double fy;
 		double cx;
 		double cy;
+
         int count;
 
 		cv_bridge::CvImagePtr aruco_img_ptr;
@@ -44,6 +48,7 @@ class aruco_listener
 		ros::Subscriber sub_image; 
 		ros::Subscriber sub_info;  
 		ros::Publisher pub_result;
+
 
 
     Eigen::Vector3d    t;
@@ -67,14 +72,17 @@ class aruco_listener
 
 void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
+
 	if( ++count % 4 != 0) return;
 	ROS_INFO("WELCOME");
 	double size          = 0.25;   // 0.25m
+
 
 	double orientation_x = msg->pose.orientation.x;
 	double orientation_y = msg->pose.orientation.y;
 	double orientation_z = msg->pose.orientation.z;
 	double orientation_w = msg->pose.orientation.w;
+<<<<<<< HEAD
 
     t = Eigen::Vector3d(msg->pose.position.x , msg->pose.position.y , msg->pose.position.z);
 	
@@ -95,12 +103,24 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 	ROS_INFO("position :  x = %lf , y = %lf , z = %lf", t(0, 0), t(1, 0), t(2, 0));
 
 	double camera_pitch = atan(t(1, 0) / t(2, 0)) / PI * 180;
+=======
+	double position_x    = msg->pose.position.x;
+	double position_y    =-msg->pose.position.y;
+	double position_z    = msg->pose.position.z;
+	double size          = 0.25;   // 0.25m
+
+	ROS_INFO("Orientation : w = %lf , x = %lf , y = %lf , z = %lf", orientation_w, orientation_x, orientation_y, orientation_z); 
+	ROS_INFO("position :  x = %lf , y = %lf , z = %lf", position_x, position_y, position_z);
+
+	double camera_pitch = atan(position_y / position_z) / PI * 180;
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 
 	double roll  = atan2(2*(orientation_w*orientation_x + orientation_y*orientation_z), 1 - 2*(orientation_x*orientation_x + 									orientation_y*orientation_y)) / PI * 180;
 	double yaw   = asin(2*(orientation_w*orientation_y - orientation_x*orientation_z)) / PI * 180;
 	double pitch = atan2(2*(orientation_w*orientation_z + orientation_y*orientation_x), 1 - 2*(orientation_z*orientation_z + 									orientation_y*orientation_y)) / PI * 180;
 
 	roll = (roll > 0) ? roll - 180 : roll + 180;
+<<<<<<< HEAD
 /*
 	point[LU][X] =cos(pitch / 180) * ((cos(roll / 180) * cos(yaw / 180) * size / 2   + position_x;
 	point[LU][Y] = size/2 * pow(2, 0.5) * sin((45 + pitch) / 180) * cos(roll/ 180)  + position_y;
@@ -123,13 +143,37 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 	ROS_INFO("roll = %lf , yaw = %lf , pitch = %lf, camera_pitch = %lf", roll, yaw, pitch,  camera_pitch); 
 
 /*
+=======
+
+	point[LU][X] =-size/2 * pow(2, 0.5) * cos((45 + pitch) / 180) * cos(yaw / 180)  + position_x;
+	point[LU][Y] = size/2 * pow(2, 0.5) * sin((45 + pitch) / 180) * cos(roll/ 180) + position_y;
+	
+	point[RU][X] = size/2 * pow(2, 0.5) * cos((45 - pitch) / 180) * cos(yaw / 180)  + position_x;
+	point[RU][Y] = size/2 * pow(2, 0.5) * sin((45 - pitch) / 180) * cos(roll/ 180) + position_y;
+	
+	point[LD][X] =-size/2 * pow(2, 0.5) * cos((45 + pitch) / 180) * cos(yaw / 180)  + position_x;
+	point[LD][Y] =-size/2 * pow(2, 0.5) * sin((45 + pitch) / 180) * cos(roll/ 180) + position_y;
+
+	point[RD][X] = size/2 * pow(2, 0.5) * cos((45 - pitch) / 180) * cos(yaw / 180)  + position_x;
+	point[RD][Y] =-size/2 * pow(2, 0.5) * sin((45 - pitch) / 180) * cos(roll/ 180) + position_y;
+	
+	distance     = position_z;
+
+	ROS_INFO("roll = %lf , yaw = %lf , pitch = %lf, camera_pitch = %lf", roll, yaw, pitch,  camera_pitch); 
+
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
     ROS_INFO("point[LU][X] = %lf, point[LU][Y] = %lf ", point[LU][X], point[LU][Y]);
     ROS_INFO("point[RU][X] = %lf, point[RU][Y] = %lf ", point[RU][X], point[RU][Y]);
     ROS_INFO("point[LD][X] = %lf, point[LD][Y] = %lf ", point[LD][X], point[LD][Y]);
     ROS_INFO("point[RD][X] = %lf, point[RD][Y] = %lf ", point[RD][X], point[RD][Y]); 
+<<<<<<< HEAD
 */
 
 	
+=======
+
+	aruco_process();
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 }
 
 void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
@@ -137,8 +181,11 @@ void aruco_listener::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg
 
 	try {
 		aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+<<<<<<< HEAD
 		aruco_process();
 		
+=======
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 	}
 	catch(...)
 	{
@@ -157,7 +204,11 @@ void aruco_listener::aruco_camera_infoCallback(const sensor_msgs::CameraInfo::Co
 aruco_listener::aruco_listener(ros::NodeHandle &n)
 {
 	ROS_INFO("init");
+<<<<<<< HEAD
 	count = 0;
+=======
+	
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 	sub_pose  = n.subscribe("/aruco_single/pose"       , 10, &aruco_listener::aruco_poseCallback       , this);
 	sub_image = n.subscribe("/camera/color/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
 	sub_info  = n.subscribe("/camera/color/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
@@ -167,6 +218,7 @@ aruco_listener::aruco_listener(ros::NodeHandle &n)
 
 void aruco_listener::aruco_process()
 {
+<<<<<<< HEAD
 	cv::Point2d point_cv[5];
 
 	point_cv[LU].x = v1(0, 0) * fx / v1(2, 0) + cx;
@@ -198,6 +250,23 @@ void aruco_listener::aruco_process()
 		cv::line(aruco_img_ptr->image, point_cv[RD], point_cv[LU], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[RU], point_cv[RD], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[LD], point_cv[LU], cv::Scalar(0, 0, 255));
+=======
+	cv::Point2d point_cv[4];
+	point_cv[LU].x = point[LU][X] * fx / distance + cx;
+	point_cv[LU].y = point[LU][Y] * fy / distance + cy;
+	point_cv[RU].x = point[RU][X] * fx / distance + cx;
+	point_cv[RU].y = point[RU][Y] * fy / distance + cy;
+	point_cv[LD].x = point[LD][X] * fx / distance + cx;
+	point_cv[LD].y = point[LD][Y] * fy / distance + cy;
+	point_cv[RD].x = point[RD][X] * fx / distance + cx;
+	point_cv[RD].y = point[RD][Y] * fy / distance + cy;
+
+	try {
+		cv::line(aruco_img_ptr->image, point_cv[0], point_cv[1], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[1], point_cv[2], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[2], point_cv[3], cv::Scalar(0, 0, 255));
+		cv::line(aruco_img_ptr->image, point_cv[3], point_cv[0], cv::Scalar(0, 0, 255));
+>>>>>>> a0376e8bb45172c4686e26126a7b9ff1a9b3ec42
 
 		pub_result.publish(aruco_img_ptr->toImageMsg());
 	}
