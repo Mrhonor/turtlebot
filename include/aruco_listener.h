@@ -22,7 +22,7 @@
 #define LD 2
 #define RD 3
 #define X  0
-#define Y  1
+#define Y  1add_message_files(
 #define Z  2
 
 using namespace std;
@@ -80,10 +80,10 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
 	
 
 	q = Eigen::Quaterniond(orientation_z, orientation_y, orientation_x, orientation_w);
-	v1 = Eigen::Vector3d(t(0, 0) + size/2, t(1, 0) + size/2, t(2, 0));
-	v2 = Eigen::Vector3d(t(0, 0) - size/2, t(1, 0) + size/2, t(2, 0));
-	v3 = Eigen::Vector3d(t(0, 0) + size/2, t(1, 0) - size/2, t(2, 0));
-	v4 = Eigen::Vector3d(t(0, 0) - size/2, t(1, 0) - size/2, t(2, 0));
+	v1 = Eigen::Vector3d( + size/2, + size/2, 0);
+	v2 = Eigen::Vector3d( - size/2, + size/2, 0);
+	v3 = Eigen::Vector3d( + size/2, - size/2, 0);
+	v4 = Eigen::Vector3d( - size/2, - size/2, 0);
 
     v1 = q * v1 + t;
     v2 = q * v2 + t;
