@@ -79,7 +79,7 @@ void aruco_listener::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstP
     t = Eigen::Vector3d(msg->pose.position.x , msg->pose.position.y , msg->pose.position.z);
 	
 
-	q = Eigen::Quaterniond(orientation_z, orientation_y, orientation_x, orientation_w);
+	q = Eigen::Quaterniond(orientation_w, orientation_x, orientation_y, orientation_z);
 	v1 = Eigen::Vector3d( + size/2, + size/2, 0);
 	v2 = Eigen::Vector3d( - size/2, + size/2, 0);
 	v3 = Eigen::Vector3d( + size/2, - size/2, 0);
@@ -168,7 +168,7 @@ aruco_listener::aruco_listener(ros::NodeHandle &n)
 void aruco_listener::aruco_process()
 {
 	cv::Point2d point_cv[5];
-/*
+
 	point_cv[LU].x = v1(0, 0) * fx / v1(2, 0) + cx;
 	point_cv[LU].y = v1(1, 0) * fy / v1(2, 0) + cy;
 	
@@ -180,7 +180,7 @@ void aruco_listener::aruco_process()
 
 	point_cv[LD].x = v4(0, 0) * fx / v4(2, 0) + cx;
     point_cv[LD].y = v4(1, 0) * fy / v4(2, 0) + cy;
-*/
+
 	point_cv[4].x = t(0, 0) * fx / t(2, 0) + cx;
 	point_cv[4].y = t(1, 0) * fy / t(2, 0) + cy;
 /*
@@ -190,15 +190,15 @@ void aruco_listener::aruco_process()
     ROS_WARN_STREAM("point_cv[RD][X] = " << point_cv[RD].x <<", point_cv[RD][Y] =  "<< point_cv[RD].y);
 */
 	try {
-        cv::circle(aruco_img_ptr->image, point_cv[4], 100 / t(2, 0),cv::Scalar(0, 255, 0));
-/*
+        //cv::circle(aruco_img_ptr->image, point_cv[4], 100 / t(2, 0),cv::Scalar(0, 255, 0));
+
 		cv::line(aruco_img_ptr->image, point_cv[LU], point_cv[RU], cv::Scalar(0, 0, 255));
 	  	cv::line(aruco_img_ptr->image, point_cv[RU], point_cv[LD], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[LD], point_cv[RD], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[RD], point_cv[LU], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[RU], point_cv[RD], cv::Scalar(0, 0, 255));
 		cv::line(aruco_img_ptr->image, point_cv[LD], point_cv[LU], cv::Scalar(0, 0, 255));
-*/
+
 		pub_result.publish(aruco_img_ptr->toImageMsg());
 	}
 	catch(...)
