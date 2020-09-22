@@ -166,8 +166,8 @@ aruco_listener::aruco_listener(ros::NodeHandle &n)
 	ROS_INFO("init");
 	count = 0;
 	sub_pose  = n.subscribe("/aruco_single/pose"       , 10, &aruco_listener::aruco_poseCallback       , this);
-	sub_image = n.subscribe("/camera/color/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
-	sub_info  = n.subscribe("/camera/color/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
+	sub_image = n.subscribe("/camera/rgb/image_raw"  , 10, &aruco_listener::aruco_imageCallback      , this);
+	sub_info  = n.subscribe("/camera/rgb/camera_info", 10, &aruco_listener::aruco_camera_infoCallback, this);
 
 	pub_result = n.advertise<sensor_msgs::Image>("/lion_eyes/result", 10);
 }
