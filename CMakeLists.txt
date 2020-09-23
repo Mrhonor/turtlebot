@@ -24,10 +24,6 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
     OpenCV
 )
-
-add_message_files(
-    FILES
-)
   
 generate_messages(
     DEPENDENCIES
@@ -58,6 +54,9 @@ include_directories(
 
 add_executable(aruco_listener
     src/aruco_main.cpp
+    src/aruco_listener.cpp
+    src/aruco_listener_subscriber.cpp
+    src/aruco_listener_publisher.cpp
 )
 
 target_link_libraries(aruco_listener 
