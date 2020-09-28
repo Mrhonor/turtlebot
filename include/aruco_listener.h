@@ -8,6 +8,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <mutex>
+
 using namespace std;
 
 class aruco_listener_subscriber;
@@ -26,16 +28,22 @@ public:
 
 	int count;
 
+	bool IsGetTarget;
+
 	cv_bridge::CvImagePtr aruco_img_ptr;
 
+	mutex aruco_process_lock;
+
     Eigen::Vector3d    t;
-	
 
 	Eigen::Quaterniond q;
 	Eigen::Vector3d    v1;
 	Eigen::Vector3d    v2;
 	Eigen::Vector3d    v3;
 	Eigen::Vector3d    v4;
+
+	Eigen::Vector3d    LinearV;
+	Eigen::Vector3d    AngularW;
 
 	aruco_listener_subscriber* Subscriber;
 	aruco_listener_publisher*  Publisher;

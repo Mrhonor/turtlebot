@@ -19,8 +19,6 @@ void aruco_listener_subscriber::Subscriber(ros::NodeHandle &n, aruco_listener* S
 
 void aruco_listener_subscriber::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
-
-
 	double size          = 0.25;   // 0.25m
 
 	double orientation_x = msg->pose.orientation.x;
@@ -49,8 +47,11 @@ void aruco_listener_subscriber::aruco_poseCallback(const geometry_msgs::PoseStam
 	double pitch = atan2(2*(orientation_w*orientation_z + orientation_y*orientation_x), 1 - 2*(orientation_z*orientation_z + orientation_y*orientation_y)) / PI * 180;
 
 	roll = (roll > 0) ? roll - 180 : roll + 180;
+
+	Subject->IsGetTarget = true;
+
 	ROS_INFO("Roll: %lf, Yaw: %lf, Pitch:%lf", roll, yaw, pitch);
-	Subject->aruco_process();
+	
 }
 
 void aruco_listener_subscriber::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
