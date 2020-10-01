@@ -23,8 +23,8 @@ using namespace std;
 #define X  0
 #define Y  1
 #define Z  2
-#define MAX_SPEED 1.f
-#define FURRENCY  30.f
+#define MAX_SPEED 2.f
+#define FURRENCY  20.f
 
 aruco_listener::aruco_listener(ros::NodeHandle &n)
 {
@@ -87,7 +87,7 @@ void aruco_listener::aruco_process()
 			ROS_INFO("yaw : %f, w : %f", yaw, AngularW(2,0));
 			
 			if(fabsf(yaw) < 0.2f){
-				LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), Limit(SGN(t(2, 0) - 1) * fabsf(t(2, 0) - 1) * MAX_SPEED), 0.1);
+				LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), Limit(2 * SGN(t(2, 0) - 2) * fabsf(t(2, 0) - 2) * MAX_SPEED), 0.1);
 			}
 			else
 			{
@@ -106,8 +106,8 @@ void aruco_listener::aruco_process()
 		}
 		else
 		{
-			LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), 0, 0.1);
-			AngularW(2, 0) = RampFunc<float>()(AngularW(2, 0), 0, 0.1);
+			LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), 0, 0.03);
+			AngularW(2, 0) = RampFunc<float>()(AngularW(2, 0), 0, 0.03);
 		}
 
 		Publisher->PublishAll();
