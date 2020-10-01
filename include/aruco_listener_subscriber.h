@@ -7,6 +7,7 @@
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/CameraInfo.h"
 
+
 class aruco_listener;
 
 class aruco_listener_subscriber

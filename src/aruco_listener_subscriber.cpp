@@ -50,7 +50,7 @@ void aruco_listener_subscriber::aruco_poseCallback(const geometry_msgs::PoseStam
 
 	Subject->IsGetTarget = true;
 
-	ROS_INFO("Roll: %lf, Yaw: %lf, Pitch:%lf", roll, yaw, pitch);
+	// ROS_INFO("Roll: %lf, Yaw: %lf, Pitch:%lf", roll, yaw, pitch);
 	
 }
 
@@ -58,8 +58,10 @@ void aruco_listener_subscriber::aruco_imageCallback(const sensor_msgs::Image::Co
 {
 
 	try {
+		unique_lock<mutex> lck(Subject->aruco_process_lock, defer_lock);
+		lck.lock();
 		Subject->aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-		
+		lck.unlock();
 	}
 	catch(...)
 	{

@@ -15,11 +15,11 @@ void aruco_listener_publisher::PublishAll(){
     }
     geometry_msgs::Twist msg;
     msg.linear.x = Subject->LinearV(2,0);
-    msg.linear.y = Subject->LinearV(0,0);
+    msg.linear.y = 0;
     msg.linear.z = 0;
     msg.angular.x = 0;
     msg.angular.y = 0;
-    msg.angular.z = Subject->AngularW(2,0);
-
+    msg.angular.z = -Subject->AngularW(2,0);
+    
     pub_turtlebot_move.publish(msg);
 }
