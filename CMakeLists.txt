@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(aruco_listener)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(OpenCV_DIR /opt/ros/kinetic/share/OpenCV-3.3.1-dev)
 
 find_package(Eigen3)
 if(NOT EIGEN3_FOUND)

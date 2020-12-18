@@ -52,7 +52,10 @@ public:
 	aruco_listener(ros::NodeHandle &);
 	~aruco_listener();
 	void aruco_process();
-        
+
+protected:
+	void GetTargetProcess();
+    void DefaultProcess();
 };
 
 #endif
