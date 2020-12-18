@@ -31,10 +31,15 @@ aruco_listener::aruco_listener(ros::NodeHandle &n)
 	ROS_INFO("init");
 	count = 0;
 	IsGetTarget = false;
+	
+	ros::param::get("~robot_name", RobotName);
+	ROS_INFO_STREAM("robot name: " << RobotName);
+
 	Subscriber = new aruco_listener_subscriber();
 	Subscriber->Subscriber(n, this);
 
 	Publisher = new aruco_listener_publisher(n, this);
+
 
 	thread thread(&aruco_listener::aruco_process, this);
 	thread.detach();

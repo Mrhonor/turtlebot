@@ -1,0 +1,8 @@
+<launch>
+    <arg name="robot" default="robot1"/>
+
+    <node pkg = "aruco_listener"  type = "aruco_listener" name = "aruco_listener" output="screen">
+    <param name = "robot_name"    type = "string"         value = "$(arg robot)"/>
+    
+    </node>
+</launch>

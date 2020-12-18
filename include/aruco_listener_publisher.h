@@ -11,9 +11,7 @@ private:
     aruco_listener* Subject;
 
     ros::Publisher pub_result;
-    ros::Publisher pub_turtlebot_move1;
-    ros::Publisher pub_turtlebot_move2;
-    ros::Publisher pub_turtlebot_move3;
+    ros::Publisher pub_turtlebot_move;
     ros::NodeHandle n;
 
 public:

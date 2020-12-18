@@ -3,12 +3,12 @@
 #include "geometry_msgs/Twist.h"
 #include "aruco_listener.h"
 
+using std::string;
 
 aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n_, aruco_listener* Subject_):n(n_), Subject(Subject_){
     pub_result = n.advertise<sensor_msgs::Image>("/lion_eyes/result", 10);
-    pub_turtlebot_move1 = n.advertise<geometry_msgs::Twist>("/robot1/mobile_base/commands/velocity", 10);
-    pub_turtlebot_move2 = n.advertise<geometry_msgs::Twist>("/robot2/mobile_base/commands/velocity", 10);
-    pub_turtlebot_move3 = n.advertise<geometry_msgs::Twist>("/robot3/mobile_base/commands/velocity", 10);
+    string topicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
+    pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(topicName, 10);
 }
 
 void aruco_listener_publisher::PublishAll(){
@@ -25,7 +25,5 @@ void aruco_listener_publisher::PublishAll(){
     msg.angular.z = 0;
     // msg.angular.z = -((fabsf(Subject->AngularW(2,0)) > 0.1) ? Subject->AngularW(2,0) : 0);
     
-    pub_turtlebot_move1.publish(msg);
-    pub_turtlebot_move2.publish(msg);
-    pub_turtlebot_move3.publish(msg);
+    pub_turtlebot_move.publish(msg);
 }

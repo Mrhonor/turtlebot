@@ -9,6 +9,7 @@
 #include <Eigen/Geometry>
 
 #include <mutex>
+#include <cstring>
 
 using namespace std;
 
@@ -18,6 +19,7 @@ class aruco_listener_publisher;
 class aruco_listener
 {
 public:
+	string RobotName;
 
 	double point[4][3];
 
