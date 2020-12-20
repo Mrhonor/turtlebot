@@ -26,14 +26,45 @@ using namespace std;
 #define MAX_SPEED 2.f
 #define FURRENCY  20.f
 
-aruco_listener::aruco_listener(ros::NodeHandle &n)
+aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 {
 	ROS_INFO("init");
 	count = 0;
 	IsGetTarget = false;
-	
+
 	ros::param::get("~robot_name", RobotName);
+	ros::param::get("~startX",     StartX);
+	ros::param::get("~startY",     StartY);
 	ROS_INFO_STREAM("robot name: " << RobotName);
+
+	CurrentLinearV  = Eigen::Vector3d::Zero();
+	CurrentCoordinate = Eigen::Vector3d::Zero();
+	TargetV = Eigen::Vector3d(1,0,0);
+	Yaw = 0.0;
+	TargetYaw = 0.0;
+
+	CurrentCoordinate(0, 0) = StartX;
+	CurrentCoordinate(1, 0) = StartY;
+
+	double kp_v, ki_v, kd_v, kp_yaw, ki_yaw, kd_yaw;
+	ros::param::get("~kp_v", kp_v);
+	ros::param::get("~ki_v", ki_v);
+	ros::param::get("~kd_v", kd_v);
+	ros::param::get("~kp_yaw", kp_yaw);
+	ros::param::get("~ki_yaw", ki_yaw);
+	ros::param::get("~kd_yaw", kd_yaw);
+
+	PID_V.kp = kp_v;
+	PID_V.ki = ki_v;
+	PID_V.kd = kd_v;
+	PID_V.Ilimit = Eigen::Vector3d(0.5, 0.5, 0.5);
+	PID_V.Outlimit = Eigen::Vector3d(0.8, 0.8, 0.8);
+
+	PID_Yaw.kp = kp_yaw;
+	PID_Yaw.ki = ki_yaw;
+	PID_Yaw.kd = kd_yaw;
+	PID_Yaw.Ilimit = 0.2;
+	PID_Yaw.Outlimit = 0.7;
 
 	Subscriber = new aruco_listener_subscriber();
 	Subscriber->Subscriber(n, this);
@@ -41,19 +72,18 @@ aruco_listener::aruco_listener(ros::NodeHandle &n)
 	Publisher = new aruco_listener_publisher(n, this);
 
 
-	thread thread(&aruco_listener::aruco_process, this);
+	thread thread(&aruco_listener_core::aruco_process, this);
 	thread.detach();
 	
 }
 
-void aruco_listener::aruco_process()
+void aruco_listener_core::aruco_process()
 {
 	unique_lock<mutex> lck(aruco_process_lock, defer_lock);
 	
 	while(ros::ok()){
 		lck.lock();
 
-		IsGetTarget = true;
 		if(IsGetTarget){
 			IsGetTarget = false;
 			GetTargetProcess();
@@ -68,72 +98,30 @@ void aruco_listener::aruco_process()
 		lck.unlock();
 		ros::Duration(1 / FURRENCY).sleep();
 	}
-
 }
 
-aruco_listener::~aruco_listener()
+aruco_listener_core::~aruco_listener_core()
 {
 	delete Subscriber;
 	delete Publisher;
 }
 
-void aruco_listener::GetTargetProcess(){
-	cv::Point2d point_cv[5];
+void aruco_listener_core::GetTargetProcess(){
 
-	point_cv[LU].x = v1(0, 0) * fx / v1(2, 0) + cx;
-	point_cv[LU].y = v1(1, 0) * fy / v1(2, 0) + cy;
-
-	point_cv[RU].x = v2(0, 0) * fx / v2(2, 0) + cx;
-	point_cv[RU].y = v2(1, 0) * fy / v2(2, 0) + cy;
-
-	point_cv[RD].x = v3(0, 0) * fx / v3(2, 0) + cx;
-	point_cv[RD].y = v3(1, 0) * fy / v3(2, 0) + cy;
-
-	point_cv[LD].x = v4(0, 0) * fx / v4(2, 0) + cx;
-	point_cv[LD].y = v4(1, 0) * fy / v4(2, 0) + cy;
-
-	point_cv[4].x = t(0, 0) * fx / t(2, 0) + cx;
-	point_cv[4].y = t(1, 0) * fy / t(2, 0) + cy;
-
-	LinearV = Eigen::Vector3d::Zero();
-
-	auto SGN = [](float num){
-		if(num < 0) return -1;
-		else if(num == 0) return 0;
-		else return 1;
-	};
-
-	auto Limit = [](float Cur){
-		if(Cur > MAX_SPEED) 		return MAX_SPEED;
-		else if(Cur < -MAX_SPEED)   return -MAX_SPEED;
-		else 						return Cur;
-	};
-
-	float yaw = atan2(t(0, 0), t(2, 0));
-	AngularW(2, 0) = RampFunc<float>()(AngularW(2, 0), 2 * SGN(yaw) * fabsf(yaw) * MAX_SPEED, 0.1);
-	ROS_INFO("yaw : %f, w : %f", yaw, AngularW(2,0));
-
-	if(fabsf(yaw) < 0.2f){
-		LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), Limit(2 * SGN(t(2, 0) - 2) * fabsf(t(2, 0) - 2) * MAX_SPEED), 0.1);
-	}
-	else
-	{
-		LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), 0, 0.1);
-	}
-
-
-	if(aruco_img_ptr != nullptr){
-		cv::line(aruco_img_ptr->image, point_cv[LU], point_cv[RU], cv::Scalar(0, 0, 255));
-		cv::line(aruco_img_ptr->image, point_cv[RU], point_cv[LD], cv::Scalar(0, 0, 255));
-		cv::line(aruco_img_ptr->image, point_cv[LD], point_cv[RD], cv::Scalar(0, 0, 255));
-		cv::line(aruco_img_ptr->image, point_cv[RD], point_cv[LU], cv::Scalar(0, 0, 255));
-		cv::line(aruco_img_ptr->image, point_cv[RU], point_cv[RD], cv::Scalar(0, 0, 255));
-		cv::line(aruco_img_ptr->image, point_cv[LD], point_cv[LU], cv::Scalar(0, 0, 255));
-	}
 }
 
-void aruco_listener::DefaultProcess(){
-	LinearV(2, 0) = RampFunc<float>()(LinearV(2, 0), 0, 0.03);
-	AngularW(2, 0) = RampFunc<float>()(AngularW(2, 0), 0, 0.03);
+void aruco_listener_core::DefaultProcess(){
+ 
+	// Eigen::Vector3d V_set = RampFunc<Eigen::Vector3d>()(TargetV, Eigen::Vector3d::Zero(), Eigen::Vector3d(0.2, 0.2, 0.2));
+
+	LinearV = PID_V.pid_calc(TargetV, CurrentLinearV);
+	// ROS_INFO("V: %f, %f, %f", LinearV(0,0), LinearV(1, 0), LinearV(2,0));
+
+	AngularW(2, 0) = PID_Yaw.pid_calc(TargetYaw, Yaw);
+	ROS_INFO("w: %f", AngularW(2, 0));
+
+
+	// LinearV(2, 0) = RampFunc<double>()(LinearV(2, 0), 0, 0.03);
+	// AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);
 }
 

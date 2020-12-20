@@ -1,78 +1,89 @@
 #include "aruco_listener_subscriber.h"
 
 #include "aruco_listener.h"
-// eigen
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #define PI 3.1415926535
 
-void aruco_listener_subscriber::Subscriber(ros::NodeHandle &n, aruco_listener* Subject_){
+using std::string;
+
+void aruco_listener_subscriber::Subscriber(ros::NodeHandle &n, aruco_listener_core* Subject_){
+	nsec = -1;
+	LastAcc = Eigen::Vector3d::Zero();
+	
     Subject = Subject_;
     if(Subject != nullptr){
-        sub_pose  = n.subscribe("/aruco_single/pose"     , 10, &aruco_listener_subscriber::aruco_poseCallback       , this);
-        sub_image = n.subscribe("/camera/rgb/image_raw"  , 10, &aruco_listener_subscriber::aruco_imageCallback      , this);
-        sub_info  = n.subscribe("/camera/rgb/camera_info", 10, &aruco_listener_subscriber::aruco_camera_infoCallback, this);
+		lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+
+		string topicName = string("/") + Subject->RobotName + string("/mobile_base/sensors/imu_data");
+		sub_imu  = n.subscribe(topicName, 10, &aruco_listener_subscriber::aruco_imuCallback, this);
+
+		sub_gaze = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
     }
 }
 
 
-void aruco_listener_subscriber::aruco_poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
-{
-	double size          = 0.25;   // 0.25m
 
-	double orientation_x = msg->pose.orientation.x;
-	double orientation_y = msg->pose.orientation.y;
-	double orientation_z = msg->pose.orientation.z;
-	double orientation_w = msg->pose.orientation.w;
 
-    Subject->t = Eigen::Vector3d(msg->pose.position.x , msg->pose.position.y , msg->pose.position.z);
+void aruco_listener_subscriber::aruco_imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
+	// lck.lock();
+	// Eigen::Vector3d coordinate = Subject->CurrentCoordinate;
+	// Eigen::Vector3d v = Subject->CurrentLinearV;
+	// lck.unlock();
 	
 
-	Subject->q = Eigen::Quaterniond(orientation_w, orientation_x, orientation_y, orientation_z);
-	Subject->v1 = Eigen::Vector3d(+ size/2, 0, + size/2);
-	Subject->v2 = Eigen::Vector3d(- size/2, 0, + size/2);
-	Subject->v3 = Eigen::Vector3d(+ size/2, 0, - size/2);
-	Subject->v4 = Eigen::Vector3d(- size/2, 0, - size/2);
+	// if(sec != -1)
+	// {
+	// 	double DeltaTime = msg->header.stamp.sec -sec + (msg->header.stamp.nsec * 0.0000001 - nsec * 0.0000001) * 0.01;
 
-    Subject->v1 = Subject->q * Subject->v1 + Subject->t;
-    Subject->v2 = Subject->q * Subject->v2 + Subject->t;
-    Subject->v3 = Subject->q * Subject->v3 + Subject->t;
-    Subject->v4 = Subject->q * Subject->v4 + Subject->t;
-
-	double camera_pitch = atan(Subject->t(1, 0) / Subject->t(2, 0)) / PI * 180;
-
-	double roll  = atan2(2*(orientation_w*orientation_x + orientation_y*orientation_z), 1 - 2*(orientation_x*orientation_x + orientation_y*orientation_y)) / PI * 180;
-	double yaw   = asin(2*(orientation_w*orientation_y - orientation_x*orientation_z)) / PI * 180;
-	double pitch = atan2(2*(orientation_w*orientation_z + orientation_y*orientation_x), 1 - 2*(orientation_z*orientation_z + orientation_y*orientation_y)) / PI * 180;
-
-	roll = (roll > 0) ? roll - 180 : roll + 180;
-
-	Subject->IsGetTarget = true;
-
-	// ROS_INFO("Roll: %lf, Yaw: %lf, Pitch:%lf", roll, yaw, pitch);
+	// 	coordinate += v * DeltaTime;
+	// 	v += LastAcc * DeltaTime;
+	// }
 	
+	// double orientation_x = msg->orientation.x;
+	// double orientation_y = msg->orientation.y;
+	// double orientation_z = msg->orientation.z;
+	// double orientation_w = msg->orientation.w;
+	// double yaw   = asin(2*(orientation_w*orientation_y - orientation_x*orientation_z)) / PI * 180;
+
+	// lck.lock();
+	// Subject->CurrentCoordinate = coordinate;
+	// Subject->CurrentLinearV = v;
+	// Subject->Yaw = yaw;
+	// lck.unlock();
+
+
+	// sec = msg->header.stamp.sec;
+	// nsec = msg->header.stamp.nsec;
+	// LastAcc = Eigen::Vector3d(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z);
 }
 
-void aruco_listener_subscriber::aruco_imageCallback(const sensor_msgs::Image::ConstPtr& msg)
-{
-
-	try {
-		unique_lock<mutex> lck(Subject->aruco_process_lock, defer_lock);
-		lck.lock();
-		Subject->aruco_img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-		lck.unlock();
+void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelStates::ConstPtr& msg){
+	int id = 0;
+	auto RobotName_it = end(Subject->RobotName);
+	RobotName_it--;
+	for(auto i : msg->name){
+		auto end_it = end(i);
+		end_it--;
+		if(*RobotName_it == *end_it){
+			break;
+		}
+		id++;
 	}
-	catch(...)
-	{
-		ROS_ERROR_STREAM("callback error");
-	}
-}
+	
 
-void aruco_listener_subscriber::aruco_camera_infoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
-{
-	Subject->fx = msg->K[0];
-	Subject->cx = msg->K[2];
-	Subject->fy = msg->K[4];
-	Subject->cy = msg->K[5];
+	double orient_x = msg->pose[id].orientation.x;
+	double orient_y = msg->pose[id].orientation.y;
+	double orient_z = msg->pose[id].orientation.z;
+	double orient_w = msg->pose[id].orientation.w;
+	double yaw = atan2(2 * (orient_x*orient_y + orient_w*orient_z), orient_w*orient_w + orient_x*orient_x - orient_y*orient_y - orient_z*orient_z) / PI * 180;
+	
+	Eigen::Vector3d(msg->pose[id].position.x, msg->pose[id].position.y, msg->pose[id].position.z);
+
+	lck.lock();
+	Subject->CurrentLinearV = Eigen::Vector3d(msg->twist[id].linear.x, msg->twist[id].linear.y, msg->twist[id].linear.z);
+	Subject->CurrentCoordinate = Eigen::Vector3d(msg->pose[id].position.x, msg->pose[id].position.y, msg->pose[id].position.z);
+	Subject->YawSpeed = msg->twist[id].angular.z;
+	Subject->Yaw = yaw;
+	lck.unlock();
+
 }

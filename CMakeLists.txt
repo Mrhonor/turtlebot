@@ -16,9 +16,11 @@ else()
   set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 endif()
 
+
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     cv_bridge
+    gazebo_msgs
     std_msgs
     sensor_msgs
     geometry_msgs
@@ -26,14 +28,20 @@ find_package(catkin REQUIRED COMPONENTS
     OpenCV
 )
   
+add_message_files(
+    FILES
+    aruco_msg.msg
+)
+
 generate_messages(
     DEPENDENCIES
     std_msgs
     geometry_msgs
+    gazebo_msgs
     sensor_msgs
 )
 
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
 
 catkin_package(
     INCLUDE_DIRS
@@ -42,6 +50,7 @@ catkin_package(
         roscpp
     	geometry_msgs
         sensor_msgs
+        gazebo_msgs
         cv_bridge
         message_runtime
     DEPENDS
@@ -59,6 +68,11 @@ add_executable(aruco_listener
     src/aruco_listener_subscriber.cpp
     src/aruco_listener_publisher.cpp
 )
+add_dependencies(aruco_listener ${${PROJECT_NAME}_EXPORTTED_TARGETS}
+                                   ${catkin_EXPORTED_TARGETS}
+                                   ${PROJECT_NAME}_generate_messages_cpp
+                                   ${PROJECT_NAME}_gencpp
+                                   )
 
 target_link_libraries(aruco_listener 
     ${catkin_LIBRARIES}

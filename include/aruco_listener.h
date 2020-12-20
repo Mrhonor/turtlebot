@@ -7,42 +7,41 @@
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
+// cpp
 #include <mutex>
 #include <cstring>
+
+#include "pid.h"
+#include "Limit.h"
 
 using namespace std;
 
 class aruco_listener_subscriber;
 class aruco_listener_publisher;
 
-class aruco_listener
+class aruco_listener_core
 {
 public:
 	string RobotName;
 
-	double point[4][3];
+	double StartX;
+	double StartY;
+	double Yaw;
+	double YawSpeed;
 
-	double fx;
-	double fy;
-	double cx;
-	double cy;
+	Eigen::Vector3d CurrentLinearV; 	//read from Gaze
+	Eigen::Vector3d CurrentCoordinate;  //read from Gaze
+
+	Eigen::Vector3d TargetV;			
+	double TargetYaw;
+
 
 	int count;
 
 	bool IsGetTarget;
 
-	cv_bridge::CvImagePtr aruco_img_ptr;
 
 	mutex aruco_process_lock;
-
-    Eigen::Vector3d    t;
-
-	Eigen::Quaterniond q;
-	Eigen::Vector3d    v1;
-	Eigen::Vector3d    v2;
-	Eigen::Vector3d    v3;
-	Eigen::Vector3d    v4;
 
 	Eigen::Vector3d    LinearV;
 	Eigen::Vector3d    AngularW;
@@ -50,9 +49,13 @@ public:
 	aruco_listener_subscriber* Subscriber;
 	aruco_listener_publisher*  Publisher;
 
+private:
+	pid<Eigen::Vector3d, Limit<Eigen::Vector3d>> PID_V;
+	pid<double, Limit<double>> PID_Yaw;
+
 public:
-	aruco_listener(ros::NodeHandle &);
-	~aruco_listener();
+	aruco_listener_core(ros::NodeHandle &);
+	~aruco_listener_core();
 	void aruco_process();
 
 protected:

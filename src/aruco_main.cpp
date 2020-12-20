@@ -3,11 +3,11 @@
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "aruco_listener");
+	ros::init(argc, argv, "aruco_listener_core");
 
 	ros::NodeHandle n;
 	ROS_INFO("START ");
-	aruco_listener aruco_node(n);
+	aruco_listener_core aruco_node(n);
 
 	
     ros::AsyncSpinner spinner(4);
