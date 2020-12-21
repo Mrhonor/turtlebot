@@ -24,7 +24,7 @@ using namespace std;
 #define Y  1
 #define Z  2
 #define MAX_SPEED 2.f
-#define FURRENCY  20.f
+#define FURRENCY  50.f
 
 aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 {
@@ -66,9 +66,7 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Ilimit = 0.2;
 	PID_Yaw.Outlimit = 0.7;
 
-	Subscriber = new aruco_listener_subscriber();
-	Subscriber->Subscriber(n, this);
-
+	Subscriber = new aruco_listener_subscriber(n, this);
 	Publisher = new aruco_listener_publisher(n, this);
 
 
@@ -107,21 +105,14 @@ aruco_listener_core::~aruco_listener_core()
 }
 
 void aruco_listener_core::GetTargetProcess(){
-
+	// LinearV = PID_V.pid_calc(TargetV, CurrentLinearV);
+	LinearV = TargetV;
+	AngularW(2, 0) = PID_Yaw.pid_calc(TargetYaw, Yaw);
 }
 
 void aruco_listener_core::DefaultProcess(){
- 
-	// Eigen::Vector3d V_set = RampFunc<Eigen::Vector3d>()(TargetV, Eigen::Vector3d::Zero(), Eigen::Vector3d(0.2, 0.2, 0.2));
 
-	LinearV = PID_V.pid_calc(TargetV, CurrentLinearV);
-	// ROS_INFO("V: %f, %f, %f", LinearV(0,0), LinearV(1, 0), LinearV(2,0));
-
-	AngularW(2, 0) = PID_Yaw.pid_calc(TargetYaw, Yaw);
-	ROS_INFO("w: %f", AngularW(2, 0));
-
-
-	// LinearV(2, 0) = RampFunc<double>()(LinearV(2, 0), 0, 0.03);
-	// AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);
+	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, Eigen::Vector3d::Zero(), Eigen::Vector3d(0.03, 0.03, 0.03));
+	AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);
 }
 

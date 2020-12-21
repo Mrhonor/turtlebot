@@ -13,10 +13,9 @@ private:
     ros::Publisher pub_result;
     ros::Publisher pub_turtlebot_move;
     ros::Publisher pub_RobotInfo;
-    ros::NodeHandle n;
 
 public:
-    aruco_listener_publisher(ros::NodeHandle &n_, aruco_listener_core* Subject_);
+    aruco_listener_publisher(ros::NodeHandle &n, aruco_listener_core* Subject_);
     
     void PublishAll();
 

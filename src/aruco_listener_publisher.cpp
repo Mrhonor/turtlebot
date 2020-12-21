@@ -6,9 +6,9 @@
 
 using std::string;
 
-aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n_, aruco_listener_core* Subject_):n(n_), Subject(Subject_){
+aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n, aruco_listener_core* Subject_):Subject(Subject_){
     if(Subject != nullptr){
-        pub_RobotInfo = n.advertise<aruco_listener::aruco_msg>("/aruco_listerner/robot/info", 10);
+        pub_RobotInfo = n.advertise<aruco_listener::aruco_msg>("/aruco_listener/robot/info", 10);
 
         string topicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
         pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(topicName, 10);

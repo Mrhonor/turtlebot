@@ -1,4 +1,3 @@
-
 #include "aruco_listener.h"
 
 int main(int argc, char **argv)

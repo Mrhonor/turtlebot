@@ -8,6 +8,7 @@
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/Imu.h"
+#include "aruco_listener/aruco_msg.h"
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -24,20 +25,21 @@ private:
 
     ros::Subscriber sub_imu;
     ros::Subscriber sub_gaze;
+    ros::Subscriber sub_control;
 
     int sec;
     int nsec;
     
     Eigen::Vector3d LastAcc;
 
-    std::unique_lock<std::mutex> lck;
-
 public:
-    void Subscriber(ros::NodeHandle &n, aruco_listener_core* Subject_);
+    aruco_listener_subscriber(){}
+    aruco_listener_subscriber(ros::NodeHandle &n, aruco_listener_core* Subject_);
 
 private:
     void aruco_imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
     void aruco_gazeCallback(const gazebo_msgs::ModelStates::ConstPtr& msg);
+    void aruco_controlCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
 };
 
 #endif

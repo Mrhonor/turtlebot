@@ -14,7 +14,7 @@
 #include "pid.h"
 #include "Limit.h"
 
-using namespace std;
+// using namespace std;
 
 class aruco_listener_subscriber;
 class aruco_listener_publisher;
@@ -22,7 +22,7 @@ class aruco_listener_publisher;
 class aruco_listener_core
 {
 public:
-	string RobotName;
+	std::string RobotName;
 
 	double StartX;
 	double StartY;
@@ -41,15 +41,17 @@ public:
 	bool IsGetTarget;
 
 
-	mutex aruco_process_lock;
+	std::mutex aruco_process_lock;
 
 	Eigen::Vector3d    LinearV;
 	Eigen::Vector3d    AngularW;
 
+
+
+private:
 	aruco_listener_subscriber* Subscriber;
 	aruco_listener_publisher*  Publisher;
 
-private:
 	pid<Eigen::Vector3d, Limit<Eigen::Vector3d>> PID_V;
 	pid<double, Limit<double>> PID_Yaw;
 

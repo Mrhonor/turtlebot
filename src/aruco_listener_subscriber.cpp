@@ -4,20 +4,19 @@
 
 #define PI 3.1415926535
 
-using std::string;
+using namespace std;
 
-void aruco_listener_subscriber::Subscriber(ros::NodeHandle &n, aruco_listener_core* Subject_){
-	nsec = -1;
+aruco_listener_subscriber::aruco_listener_subscriber(ros::NodeHandle &n, aruco_listener_core* Subject_){
+	sec = -1;
 	LastAcc = Eigen::Vector3d::Zero();
 	
     Subject = Subject_;
     if(Subject != nullptr){
-		lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
-
 		string topicName = string("/") + Subject->RobotName + string("/mobile_base/sensors/imu_data");
-		sub_imu  = n.subscribe(topicName, 10, &aruco_listener_subscriber::aruco_imuCallback, this);
-
-		sub_gaze = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
+		sub_imu     = n.subscribe(topicName, 10, &aruco_listener_subscriber::aruco_imuCallback, this);
+   
+		sub_gaze    = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
+		sub_control = n.subscribe("/robot_controller/control", 10, &aruco_listener_subscriber::aruco_controlCallback, this);
     }
 }
 
@@ -25,6 +24,7 @@ void aruco_listener_subscriber::Subscriber(ros::NodeHandle &n, aruco_listener_co
 
 
 void aruco_listener_subscriber::aruco_imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
+	// unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
 	// lck.lock();
 	// Eigen::Vector3d coordinate = Subject->CurrentCoordinate;
 	// Eigen::Vector3d v = Subject->CurrentLinearV;
@@ -49,7 +49,6 @@ void aruco_listener_subscriber::aruco_imuCallback(const sensor_msgs::Imu::ConstP
 	// Subject->CurrentCoordinate = coordinate;
 	// Subject->CurrentLinearV = v;
 	// Subject->Yaw = yaw;
-	// lck.unlock();
 
 
 	// sec = msg->header.stamp.sec;
@@ -58,6 +57,7 @@ void aruco_listener_subscriber::aruco_imuCallback(const sensor_msgs::Imu::ConstP
 }
 
 void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelStates::ConstPtr& msg){
+	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
 	int id = 0;
 	auto RobotName_it = end(Subject->RobotName);
 	RobotName_it--;
@@ -84,6 +84,14 @@ void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelState
 	Subject->CurrentCoordinate = Eigen::Vector3d(msg->pose[id].position.x, msg->pose[id].position.y, msg->pose[id].position.z);
 	Subject->YawSpeed = msg->twist[id].angular.z;
 	Subject->Yaw = yaw;
-	lck.unlock();
+
+}
+
+void aruco_listener_subscriber::aruco_controlCallback(const aruco_listener::aruco_msg::ConstPtr& msg){
+	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+	lck.lock();
+	Subject->TargetV = Eigen::Vector3d(msg->linear.x, msg->linear.y, msg->linear.z);
+	Subject->TargetYaw = msg->yaw;
+	Subject->IsGetTarget = true;
 
 }
