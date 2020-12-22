@@ -17,13 +17,13 @@ aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n, aruco_lis
 
 void aruco_listener_publisher::PublishAll(){
     geometry_msgs::Twist msg;
-    msg.linear.x = fabsf(Subject->LinearV(0,0)) > 0.0001 ? Subject->LinearV(0,0) : 0;
-    msg.linear.y = fabsf(Subject->LinearV(1,0)) > 0.0001 ? Subject->LinearV(1,0) : 0;
-    msg.linear.z = fabsf(Subject->LinearV(2,0)) > 0.0001 ? Subject->LinearV(2,0) : 0;
+    msg.linear.x = fabs(Subject->LinearV(0,0)) > 0.0001 ? Subject->LinearV(0,0) : 0;
+    msg.linear.y = fabs(Subject->LinearV(1,0)) > 0.0001 ? Subject->LinearV(1,0) : 0;
+    msg.linear.z = fabs(Subject->LinearV(2,0)) > 0.0001 ? Subject->LinearV(2,0) : 0;
     msg.angular.x = 0;
     msg.angular.y = 0;
     // msg.angular.z = 0;
-    msg.angular.z = (fabsf(Subject->AngularW(2,0)) > 0.0001) ? Subject->AngularW(2,0) : 0;
+    msg.angular.z = (fabs(Subject->AngularW(2,0)) > 0.0001) ? Subject->AngularW(2,0) : 0;
     
     pub_turtlebot_move.publish(msg);
 
