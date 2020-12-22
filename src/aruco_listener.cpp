@@ -63,8 +63,8 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.kp = kp_yaw;
 	PID_Yaw.ki = ki_yaw;
 	PID_Yaw.kd = kd_yaw;
-	PID_Yaw.Ilimit = 0.2;
-	PID_Yaw.Outlimit = 0.7;
+	PID_Yaw.Ilimit = 0.1;
+	PID_Yaw.Outlimit = 0.6;
 
 	Subscriber = new aruco_listener_subscriber(n, this);
 	Publisher = new aruco_listener_publisher(n, this);
@@ -105,12 +105,12 @@ aruco_listener_core::~aruco_listener_core()
 }
 
 void aruco_listener_core::GetTargetProcess(){
-	// LinearV = PID_V.pid_calc(TargetV, CurrentLinearV);
-	LinearV = TargetV;
+	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, TargetV, Eigen::Vector3d(0.03, 0.03, 0.03));
 	AngularW(2, 0) = PID_Yaw.pid_calc(TargetYaw, Yaw);
 }
 
 void aruco_listener_core::DefaultProcess(){
+
 
 	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, Eigen::Vector3d::Zero(), Eigen::Vector3d(0.03, 0.03, 0.03));
 	AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);

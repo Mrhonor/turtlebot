@@ -88,9 +88,9 @@ void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelState
 }
 
 void aruco_listener_subscriber::aruco_controlCallback(const aruco_listener::aruco_msg::ConstPtr& msg){
-	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
-	lck.lock();
 	if(Subject->RobotName == msg->robotName){
+		unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+		lck.lock();
 		Subject->TargetV = Eigen::Vector3d(msg->linear.x, msg->linear.y, msg->linear.z);
 		Subject->TargetYaw = msg->yaw;
 		Subject->IsGetTarget = true;
