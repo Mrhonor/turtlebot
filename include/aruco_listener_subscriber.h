@@ -26,6 +26,8 @@ private:
     ros::Subscriber sub_imu;
     ros::Subscriber sub_gaze;
     ros::Subscriber sub_control;
+    ros::Subscriber sub_info;
+    ros::Subscriber sub_wait;
 
     int sec;
     int nsec;
@@ -40,6 +42,8 @@ private:
     void aruco_imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
     void aruco_gazeCallback(const gazebo_msgs::ModelStates::ConstPtr& msg);
     void aruco_controlCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
+    void aruco_robotInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
+    void aruco_waitInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
 };
 
 #endif

@@ -14,12 +14,14 @@ private:
     ros::Publisher pub_turtlebot_move;
     ros::Publisher pub_RobotInfo;
 
+    ros::Publisher pub_Waiting;
+
 public:
     aruco_listener_publisher(ros::NodeHandle &n, aruco_listener_core* Subject_);
     
     void PublishAll();
 
-    
+    void PublishWaitingInfo(double x, double y, bool status);
 };
 
 

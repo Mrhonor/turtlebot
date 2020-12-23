@@ -13,6 +13,7 @@ aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n, aruco_lis
         string topicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
         pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(topicName, 10);
     }
+    pub_Waiting = n.advertise<aruco_listener::aruco_msg>("/aruco_listener/robot/wait", 10);
 }
 
 void aruco_listener_publisher::PublishAll(){
@@ -41,4 +42,18 @@ void aruco_listener_publisher::PublishAll(){
 
     pub_RobotInfo.publish(msg_info);
 
+}
+
+void aruco_listener_publisher::PublishWaitingInfo(double x, double y, bool status){
+    aruco_listener::aruco_msg msg;
+    msg.robotName = Subject->RobotName;
+    msg.x = x;
+    msg.y = y;
+    if(status == true){
+        msg.yaw = 0;
+    }
+    else{
+        msg.yaw = 1;
+    }
+    pub_Waiting.publish(msg);
 }

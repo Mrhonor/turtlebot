@@ -66,6 +66,15 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Ilimit = 0.1;
 	PID_Yaw.Outlimit = 0.6;
 
+	TurningPoint p;
+    p.x = 5;
+    p.y = 0;
+    p.boundaryLength = 1.5;
+    CrossRoad.push_back(p);
+	CurrentTurningPoint = nullptr;
+
+	Distination = Eigen::Vector3d(5, 0, 0);
+
 	Subscriber = new aruco_listener_subscriber(n, this);
 	Publisher = new aruco_listener_publisher(n, this);
 
@@ -82,15 +91,18 @@ void aruco_listener_core::aruco_process()
 	while(ros::ok()){
 		lck.lock();
 
-		if(IsGetTarget){
-			IsGetTarget = false;
-			GetTargetProcess();
-		}
-		else
-		{
-			DefaultProcess();
-		}
+		OnSelfControl();
+		GetTargetProcess();
 
+		// if(IsGetTarget){
+		// 	IsGetTarget = false;
+		// 	GetTargetProcess();
+		// }
+		// else
+		// {
+		// 	DefaultProcess();
+		// }
+		
 		Publisher->PublishAll();
 
 		lck.unlock();
@@ -116,3 +128,77 @@ void aruco_listener_core::DefaultProcess(){
 	AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);
 }
 
+void aruco_listener_core::OnSelfControl(){
+    if(fabs(CurrentCoordinate(0,0) - Distination(0,0)) <= 0.15 && fabs(CurrentCoordinate(1,0) - Distination(1,0)) <= 0.15){
+        Distination(0,0) = 100;
+    }
+
+    bool CanPassTheCrossRoad = true;
+	if(CurrentTurningPoint == nullptr){
+		for(auto &p : CrossRoad){
+			if(p.IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), p.boundaryLength)){
+				CurrentTurningPoint = &p;
+				if (p.WaitQuene.size() != 0)
+				{
+					CanPassTheCrossRoad = false;
+				}
+				RobotInfo newInfo;
+				newInfo.Name = RobotName;
+				p.WaitQuene.push_back(newInfo);
+				Publisher->PublishWaitingInfo(p.x, p.y, true);
+			}
+		}
+	}
+	else
+	{
+		if(CurrentTurningPoint->WaitQuene[0].Name == RobotName){
+			if(!CurrentTurningPoint->IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), CurrentTurningPoint->boundaryLength + 0.1)){
+				Publisher->PublishWaitingInfo(CurrentTurningPoint->x, CurrentTurningPoint->y, false);
+				CurrentTurningPoint->WaitQuene.erase(CurrentTurningPoint->WaitQuene.begin());
+				CurrentTurningPoint = nullptr;
+			}
+		}
+		else
+		{
+			CanPassTheCrossRoad = false;
+		}
+		
+	}
+
+    TargetYaw = atan2(Distination(1,0) - CurrentCoordinate(1,0), Distination(0,0) - CurrentCoordinate(0,0)) / PI * 180.0;
+
+    if(fabs(TargetYaw - Yaw) < 20 && CanPassTheCrossRoad){
+        //search others to follow
+        double MinDistance = -1;
+        for(auto &i : Robots){
+            if(abs(i.yaw - Yaw) < 30){
+                double Distance = (i.x - CurrentCoordinate(0,0)) * cos(Yaw / 180.0 * PI) + (i.y - CurrentCoordinate(1,0)) * sin(Yaw / 180.0 * PI);  
+                if(Distance > 0 && (MinDistance == -1 || Distance < MinDistance)){
+                    MinDistance = Distance;
+                    Following = &i;
+
+                }
+            }
+        }
+
+        if (MinDistance > 1.2) //catch up with the leader
+        {
+            TargetV(0,0) = 0.7;
+        }
+        else if(MinDistance == -1) // nobody to follow
+        {
+			TargetV(0,0) = 0.4;
+        }
+        else
+        {
+            // following
+            TargetV(0,0) = Following->v;
+        }
+        
+    }
+    else
+    {
+        TargetV(0,0) = 0;
+    }
+    
+}

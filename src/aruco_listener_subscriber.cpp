@@ -17,6 +17,8 @@ aruco_listener_subscriber::aruco_listener_subscriber(ros::NodeHandle &n, aruco_l
    
 		sub_gaze    = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
 		sub_control = n.subscribe("/robot_controller/control", 10, &aruco_listener_subscriber::aruco_controlCallback, this);
+		sub_info    = n.subscribe("/aruco_listener/robot/info", 10, &aruco_listener_subscriber::aruco_robotInfoCallback, this);
+		sub_wait    = n.subscribe("/aruco_listener/robot/wait", 10, &aruco_listener_subscriber::aruco_waitInfoCallback, this);
     }
 }
 
@@ -96,4 +98,61 @@ void aruco_listener_subscriber::aruco_controlCallback(const aruco_listener::aruc
 		Subject->IsGetTarget = true;
 	}
 
+}
+
+void aruco_listener_subscriber::aruco_robotInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg){
+    string name = msg->robotName;
+	if (name == Subject->RobotName)
+	{
+		return;
+	}
+
+    unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+    lck.lock();
+    for(auto &i : Subject->Robots){
+        if(i.Name == name){
+            i.v = msg->linear.x;
+            i.yaw = msg->yaw;
+            i.x = msg->x;
+            i.y = msg->y;
+            return;
+        }
+    }
+    RobotInfo NewInfo;
+    NewInfo.Name = name;
+    NewInfo.v = msg->linear.x;
+    NewInfo.yaw = msg->yaw;
+    NewInfo.x = msg->x;
+    NewInfo.y = msg->y;
+    Subject->Robots.push_back(NewInfo);
+
+}
+
+void aruco_listener_subscriber::aruco_waitInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg){
+	string name = msg->robotName;
+	if (name == Subject->RobotName)
+	{
+		return;
+	}
+
+	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+	lck.lock();
+    if(fabs(msg->yaw) <= 0.01){
+		RobotInfo NewInfo;
+		NewInfo.Name = name;
+		for(auto &i : Subject->CrossRoad){
+			if(i.IsWithingTuringPoints(msg->x, msg->y, i.boundaryLength)){
+				i.WaitQuene.push_back(NewInfo);
+			}
+		}
+	}
+	else
+	{
+		for(auto &i : Subject->CrossRoad){
+			if(i.IsWithingTuringPoints(msg->x, msg->y, i.boundaryLength) && name != Subject->RobotName){
+				i.WaitQuene.erase(i.WaitQuene.begin());
+			}
+		}
+	}
+	
 }
