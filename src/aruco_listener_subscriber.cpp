@@ -153,6 +153,5 @@ void aruco_listener_subscriber::aruco_waitInfoCallback(const aruco_listener::aru
 				i.WaitQuene.erase(i.WaitQuene.begin());
 			}
 		}
-	}
-	
+	}	
 }

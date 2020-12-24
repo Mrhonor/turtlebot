@@ -25,6 +25,8 @@ using namespace std;
 #define Z  2
 #define MAX_SPEED 2.f
 #define FURRENCY  50.f
+#define K         0.5
+#define WALL_LENGTH 10
 
 aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 {
@@ -91,17 +93,26 @@ void aruco_listener_core::aruco_process()
 	while(ros::ok()){
 		lck.lock();
 
-		OnSelfControl();
-		GetTargetProcess();
+		// OnSelfControl();
+		// GetTargetProcess();
 
-		// if(IsGetTarget){
-		// 	IsGetTarget = false;
-		// 	GetTargetProcess();
-		// }
-		// else
-		// {
-		// 	DefaultProcess();
-		// }
+		if(RobotName == "robot1"){
+			Escaping();
+		}
+		else
+		{
+			Catching();
+		}
+		
+
+		if(IsGetTarget){
+			IsGetTarget = false;
+			GetTargetProcess();
+		}
+		else
+		{
+			DefaultProcess();
+		}
 		
 		Publisher->PublishAll();
 
@@ -201,4 +212,88 @@ void aruco_listener_core::OnSelfControl(){
         TargetV(0,0) = 0;
     }
     
+}
+
+void aruco_listener_core::Escaping(){
+	auto CalcDistance = [this](RobotInfo a){
+		return pow(a.x - CurrentCoordinate(0,0), 2) + pow(a.y -CurrentCoordinate(1,0), 2);
+	};
+
+	auto CalcYaw = [this](RobotInfo a){
+		return atan2(CurrentCoordinate(1, 0) - a.y, CurrentCoordinate(0, 0) - a.x);
+	};
+
+	auto CalcForce = [](double power1, double power2, double Distance){
+		return K * power1 * power2 / Distance;
+	};
+
+	double XForce = 0, YForce = 0;
+
+	for(auto i : Robots){
+		double TotalForce = CalcForce(1, 1, CalcDistance(i));
+		double yawValue = CalcYaw(i);
+		XForce += TotalForce * cos(yawValue);
+		YForce += TotalForce * sin(yawValue);
+	}
+
+	// add force from Wall
+	XForce += CalcForce(1, 0.4, pow(CurrentCoordinate(0,0) + WALL_LENGTH, 2)) - CalcForce(1, 0.4, pow(WALL_LENGTH - CurrentCoordinate(0,0), 2));
+	YForce += CalcForce(1, 0.4, pow(CurrentCoordinate(1,0) + WALL_LENGTH, 2)) - CalcForce(1, 0.4, pow(WALL_LENGTH - CurrentCoordinate(1,0), 2));
+
+
+	TargetYaw = atan2(YForce, XForce) / PI * 180.0;
+	if(fabs(TargetYaw - Yaw) < 180){
+		TargetV(0,0) = 0.7;
+	}
+	else
+	{
+		TargetV(0,0) = 0.3;
+	}
+	IsGetTarget = true;
+}
+
+void aruco_listener_core::Catching(){
+	auto CalcDistance = [this](RobotInfo a){
+		return pow(a.x - CurrentCoordinate(0,0), 2) + pow(a.y -CurrentCoordinate(1,0), 2);
+	};
+
+	auto CalcYaw = [this](RobotInfo a){
+		return atan2(CurrentCoordinate(1, 0) - a.y, CurrentCoordinate(0, 0) - a.x);
+	};
+
+	auto CalcForce = [](double power1, double power2, double Distance){
+		return K * power1 * power2 / Distance;
+	};
+
+	double XForce = 0, YForce = 0;
+
+	for(auto i : Robots){
+		double TotalForce, yawValue;
+		if(i.Name == "robot1"){
+			TotalForce = 1;
+			yawValue = (CalcYaw(i) > 0) ? CalcYaw(i) - PI : CalcYaw(i) + PI;
+		}
+		else
+		{
+			TotalForce = CalcForce(1, 0.4, CalcDistance(i));
+			yawValue = CalcYaw(i);
+		}
+		XForce += TotalForce * cos(yawValue);
+		YForce += TotalForce * sin(yawValue);
+	}
+	// add force from Wall
+	XForce += CalcForce(1, 0.4, pow(CurrentCoordinate(0,0) + WALL_LENGTH, 2)) - CalcForce(1, 0.4, pow(WALL_LENGTH - CurrentCoordinate(0,0), 2));
+	YForce += CalcForce(1, 0.4, pow(CurrentCoordinate(1,0) + WALL_LENGTH, 2)) - CalcForce(1, 0.4, pow(WALL_LENGTH - CurrentCoordinate(1,0), 2));
+
+	TargetYaw = atan2(YForce, XForce) / PI * 180.0;
+	if(fabs(TargetYaw - Yaw) < 90){
+		TargetV(0,0) = 0.4;
+	}
+	else
+	{
+		TargetV(0,0) = 0;
+	}
+	
+	
+	IsGetTarget = true;
 }

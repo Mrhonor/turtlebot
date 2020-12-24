@@ -125,6 +125,9 @@ private:
 	void GetTargetProcess();
     void DefaultProcess();
 	void OnSelfControl();
+    void Escaping();
+    void Catching();
+
 };
 
 #endif
