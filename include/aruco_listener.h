@@ -120,11 +120,13 @@ public:
 	aruco_listener_core(ros::NodeHandle &);
 	~aruco_listener_core();
 	void aruco_process();
+    void SetDistination(TurningPoint &);
 
 private:
 	void GetTargetProcess();
     void DefaultProcess();
 	void OnSelfControl();
+
 };
 
 #endif

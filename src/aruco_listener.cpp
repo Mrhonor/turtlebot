@@ -29,7 +29,7 @@ using namespace std;
 aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 {
 	ROS_INFO("init");
-	count = 0;
+	count = 9;
 	IsGetTarget = false;
 
 	ros::param::get("~robot_name", RobotName);
@@ -66,14 +66,36 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Ilimit = 0.1;
 	PID_Yaw.Outlimit = 0.6;
 
-	TurningPoint p;
-    p.x = 5;
-    p.y = 0;
-    p.boundaryLength = 1.5;
-    CrossRoad.push_back(p);
+	TurningPoint p[10];
+    p[0].x = 10;
+    p[0].y = 0;
+	p[1].x = 13.09;
+	p[1].y = 9.51;
+	p[2].x = 16.18;
+	p[2].y = 0;
+	p[3].x = 26.18;
+	p[3].y = 0;
+	p[4].x = 18.09;
+	p[4].y = -5.88;
+ 	p[5].x = 21.18;
+	p[5].y = -15.39;
+ 	p[6].x = 13.09;
+	p[6].y = -9.51;
+ 	p[7].x = 5;
+	p[7].y = -15.39;
+ 	p[8].x = 12.09;
+	p[8].y = -5.88;
+ 	p[9].x = 0;
+	p[9].y = 0;
+
+ 	for(int i = 0; i < 10; i++) {
+		p[i].boundaryLength = 1.5;
+		CrossRoad.push_back(p[i]);
+	}
+
 	CurrentTurningPoint = nullptr;
 
-	Distination = Eigen::Vector3d(5, 0, 0);
+	SetDistination(CrossRoad[count]);
 
 	Subscriber = new aruco_listener_subscriber(n, this);
 	Publisher = new aruco_listener_publisher(n, this);
@@ -91,7 +113,10 @@ void aruco_listener_core::aruco_process()
 	while(ros::ok()){
 		lck.lock();
 
+		// policy choosen
 		OnSelfControl();
+
+		// pid control
 		GetTargetProcess();
 
 		// if(IsGetTarget){
@@ -103,6 +128,7 @@ void aruco_listener_core::aruco_process()
 		// 	DefaultProcess();
 		// }
 		
+		// publish
 		Publisher->PublishAll();
 
 		lck.unlock();
@@ -130,12 +156,14 @@ void aruco_listener_core::DefaultProcess(){
 
 void aruco_listener_core::OnSelfControl(){
     if(fabs(CurrentCoordinate(0,0) - Distination(0,0)) <= 0.15 && fabs(CurrentCoordinate(1,0) - Distination(1,0)) <= 0.15){
-        Distination(0,0) = 100;
+		count = (count + 1) % 10;
+        SetDistination(CrossRoad[count]);
     }
 
     bool CanPassTheCrossRoad = true;
 	if(CurrentTurningPoint == nullptr){
 		for(auto &p : CrossRoad){
+			// check is it withing the turing points
 			if(p.IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), p.boundaryLength)){
 				CurrentTurningPoint = &p;
 				if (p.WaitQuene.size() != 0)
@@ -151,6 +179,7 @@ void aruco_listener_core::OnSelfControl(){
 	}
 	else
 	{
+		// check it should wait or go
 		if(CurrentTurningPoint->WaitQuene[0].Name == RobotName){
 			if(!CurrentTurningPoint->IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), CurrentTurningPoint->boundaryLength + 0.1)){
 				Publisher->PublishWaitingInfo(CurrentTurningPoint->x, CurrentTurningPoint->y, false);
@@ -183,11 +212,11 @@ void aruco_listener_core::OnSelfControl(){
 
         if (MinDistance > 1.2) //catch up with the leader
         {
-            TargetV(0,0) = 0.7;
+            TargetV(0,0) = 0.8;
         }
         else if(MinDistance == -1) // nobody to follow
         {
-			TargetV(0,0) = 0.4;
+			TargetV(0,0) = 0.6;
         }
         else
         {
@@ -201,4 +230,8 @@ void aruco_listener_core::OnSelfControl(){
         TargetV(0,0) = 0;
     }
     
+}
+
+void aruco_listener_core::SetDistination(TurningPoint &NewTarget){
+	Distination = Eigen::Vector3d(NewTarget.x, NewTarget.y, 0);
 }
