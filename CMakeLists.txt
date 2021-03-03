@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     sensor_msgs
     geometry_msgs
+    nav_msgs
     message_generation
     OpenCV
 )
@@ -39,6 +40,7 @@ generate_messages(
     geometry_msgs
     gazebo_msgs
     sensor_msgs
+    nav_msgs
 )
 
 set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
@@ -51,6 +53,7 @@ catkin_package(
     	geometry_msgs
         sensor_msgs
         gazebo_msgs
+        nav_msgs
         cv_bridge
         message_runtime
     DEPENDS

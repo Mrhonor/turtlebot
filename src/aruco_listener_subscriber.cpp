@@ -86,6 +86,7 @@ void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelState
 	Subject->CurrentCoordinate = Eigen::Vector3d(msg->pose[id].position.x, msg->pose[id].position.y, msg->pose[id].position.z);
 	Subject->YawSpeed = msg->twist[id].angular.z;
 	Subject->Yaw = yaw;
+	Subject->IsGetTarget = true;
 
 }
 
@@ -135,8 +136,10 @@ void aruco_listener_subscriber::aruco_waitInfoCallback(const aruco_listener::aru
 		return;
 	}
 
+	
 	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
 	lck.lock();
+	
     if(fabs(msg->yaw) <= 0.01){
 		RobotInfo NewInfo;
 		NewInfo.Name = name;
@@ -150,7 +153,9 @@ void aruco_listener_subscriber::aruco_waitInfoCallback(const aruco_listener::aru
 	{
 		for(auto &i : Subject->CrossRoad){
 			if(i.IsWithingTuringPoints(msg->x, msg->y, i.boundaryLength) && name != Subject->RobotName){
-				i.WaitQuene.erase(i.WaitQuene.begin());
+				if(i.WaitQuene.size() != 0){
+					i.WaitQuene.erase(i.WaitQuene.begin());
+				}				
 			}
 		}
 	}

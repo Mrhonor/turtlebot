@@ -1,6 +1,7 @@
 #include "aruco_listener_publisher.h"
 #include "sensor_msgs/Image.h"
 #include "geometry_msgs/Twist.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "aruco_listener.h"
 #include "aruco_listener/aruco_msg.h"
 
@@ -10,8 +11,11 @@ aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n, aruco_lis
     if(Subject != nullptr){
         pub_RobotInfo = n.advertise<aruco_listener::aruco_msg>("/aruco_listener/robot/info", 10);
 
-        string topicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
-        pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(topicName, 10);
+        string MoveTopicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
+        pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(MoveTopicName, 10);
+
+        string TrajectoryTopicName = string("/") + Subject->RobotName + string("/aruco_listener/trajectory");
+        pub_trajectory = n.advertise<nav_msgs::Path>(TrajectoryTopicName, 10);
     }
     pub_Waiting = n.advertise<aruco_listener::aruco_msg>("/aruco_listener/robot/wait", 10);
 }
@@ -41,7 +45,6 @@ void aruco_listener_publisher::PublishAll(){
 
 
     pub_RobotInfo.publish(msg_info);
-
 }
 
 void aruco_listener_publisher::PublishWaitingInfo(double x, double y, bool status){
@@ -56,4 +59,17 @@ void aruco_listener_publisher::PublishWaitingInfo(double x, double y, bool statu
         msg.yaw = 1;
     }
     pub_Waiting.publish(msg);
+}
+
+void aruco_listener_publisher::PublishTrajectory(double x, double y){
+    
+    geometry_msgs::PoseStamped msg_pose;
+    msg_pose.pose.position.x = x;
+    msg_pose.pose.position.y = y;
+    msg_pose.header.stamp = ros::Time::now();
+    msg_pose.header.frame_id = "base";
+    path_msg.header.frame_id="base";
+    path_msg.poses.push_back(msg_pose);
+    pub_trajectory.publish(path_msg);
+
 }

@@ -67,24 +67,24 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Outlimit = 0.6;
 
 	TurningPoint p[10];
-    p[0].x = 10;
+    p[0].x = 5;
     p[0].y = 0;
-	p[1].x = 13.09;
-	p[1].y = 9.51;
-	p[2].x = 16.18;
+	p[1].x = 6.55;
+	p[1].y = 4.76;
+	p[2].x = 8.09;
 	p[2].y = 0;
-	p[3].x = 26.18;
+	p[3].x = 13.09;
 	p[3].y = 0;
-	p[4].x = 18.09;
-	p[4].y = -5.88;
- 	p[5].x = 21.18;
-	p[5].y = -15.39;
- 	p[6].x = 13.09;
-	p[6].y = -9.51;
- 	p[7].x = 5;
-	p[7].y = -15.39;
- 	p[8].x = 12.09;
-	p[8].y = -5.88;
+	p[4].x = 9.05;
+	p[4].y = -2.94;
+ 	p[5].x = 10.59;
+	p[5].y = -7.70;
+ 	p[6].x = 6.55;
+	p[6].y = -4.76;
+ 	p[7].x = 2.5;
+	p[7].y = -7.7;
+ 	p[8].x = 4.05;
+	p[8].y = -2.94;
  	p[9].x = 0;
 	p[9].y = 0;
 
@@ -112,21 +112,17 @@ void aruco_listener_core::aruco_process()
 	
 	while(ros::ok()){
 		lck.lock();
-
+		
 		// policy choosen
 		OnSelfControl();
-
+		
 		// pid control
 		GetTargetProcess();
 
-		// if(IsGetTarget){
-		// 	IsGetTarget = false;
-		// 	GetTargetProcess();
-		// }
-		// else
-		// {
-		// 	DefaultProcess();
-		// }
+		if(IsGetTarget){
+			IsGetTarget = false;
+			Publisher->PublishTrajectory(CurrentCoordinate(0, 0), CurrentCoordinate(1, 0));
+		}
 		
 		// publish
 		Publisher->PublishAll();
@@ -159,7 +155,7 @@ void aruco_listener_core::OnSelfControl(){
 		count = (count + 1) % 10;
         SetDistination(CrossRoad[count]);
     }
-
+	
     bool CanPassTheCrossRoad = true;
 	if(CurrentTurningPoint == nullptr){
 		for(auto &p : CrossRoad){
@@ -193,9 +189,9 @@ void aruco_listener_core::OnSelfControl(){
 		}
 		
 	}
-
+	
     TargetYaw = atan2(Distination(1,0) - CurrentCoordinate(1,0), Distination(0,0) - CurrentCoordinate(0,0)) / PI * 180.0;
-
+	
     if(fabs(TargetYaw - Yaw) < 20 && CanPassTheCrossRoad){
         //search others to follow
         double MinDistance = -1;
@@ -205,7 +201,6 @@ void aruco_listener_core::OnSelfControl(){
                 if(Distance > 0 && (MinDistance == -1 || Distance < MinDistance)){
                     MinDistance = Distance;
                     Following = &i;
-
                 }
             }
         }
