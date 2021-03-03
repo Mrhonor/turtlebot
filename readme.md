@@ -1,8 +1,8 @@
-# assignment3 下位机节点
+# assignment5 下位机节点
 
 **usage**:
 
-首先请将*assignment3.launch*文件放于turtlebot_gaze/launch文件目录下。
+首先请将*assignment5.launch*文件放于turtlebot_gaze/launch文件目录下。
 
 可以通过以下命令找到对应路径
 ```
@@ -11,7 +11,7 @@ roscd turtlebot_gaze/launch
 
 启动gazebo仿真器
 ```
-roslaunch turtlebot_gaze assignment3.launch
+roslaunch turtlebot_gaze assignment5.launch
 ```
 启动3个机器人的下位机节点
 ```
