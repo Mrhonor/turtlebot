@@ -29,8 +29,9 @@ using namespace std;
 aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 {
 	ROS_INFO("init");
-	count = 9;
+	count = 0;
 	IsGetTarget = false;
+	IsPositionControl = false;
 
 	ros::param::get("~robot_name", RobotName);
 	ros::param::get("~startX",     StartX);
@@ -46,13 +47,22 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	CurrentCoordinate(0, 0) = StartX;
 	CurrentCoordinate(1, 0) = StartY;
 
-	double kp_v, ki_v, kd_v, kp_yaw, ki_yaw, kd_yaw;
+	double kp_q, ki_q, kd_q, kp_v, ki_v, kd_v, kp_yaw, ki_yaw, kd_yaw;
+	ros::param::get("~kp_q", kp_q);
+	ros::param::get("~ki_q", ki_q);
+	ros::param::get("~kd_q", kd_q);
 	ros::param::get("~kp_v", kp_v);
 	ros::param::get("~ki_v", ki_v);
 	ros::param::get("~kd_v", kd_v);
 	ros::param::get("~kp_yaw", kp_yaw);
 	ros::param::get("~ki_yaw", ki_yaw);
 	ros::param::get("~kd_yaw", kd_yaw);
+
+	PID_Q.kp = kp_q;
+	PID_Q.ki = ki_q;
+	PID_Q.kd = kd_q;
+	PID_Q.Ilimit = Eigen::Vector3d(0.3, 0.3, 0.3);
+	PID_Q.Outlimit = Eigen::Vector3d(0.9,0.9, 0.9);
 
 	PID_V.kp = kp_v;
 	PID_V.ki = ki_v;
@@ -66,30 +76,32 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Ilimit = 0.1;
 	PID_Yaw.Outlimit = 0.6;
 
-	TurningPoint p[10];
-    p[0].x = 5;
-    p[0].y = 0;
-	p[1].x = 6.55;
-	p[1].y = 4.76;
-	p[2].x = 8.09;
-	p[2].y = 0;
-	p[3].x = 13.09;
-	p[3].y = 0;
-	p[4].x = 9.05;
-	p[4].y = -2.94;
- 	p[5].x = 10.59;
-	p[5].y = -7.70;
- 	p[6].x = 6.55;
-	p[6].y = -4.76;
- 	p[7].x = 2.5;
-	p[7].y = -7.7;
- 	p[8].x = 4.05;
-	p[8].y = -2.94;
- 	p[9].x = 0;
-	p[9].y = 0;
+	TurningPoint p[1];
+	p[0].x = 2.0;
+	p[0].y = 0;
+	// p[0].x = 5;
+    // p[0].y = 0;
+	// p[1].x = 6.55;
+	// p[1].y = 4.76;
+	// p[2].x = 8.09;
+	// p[2].y = 0;
+	// p[3].x = 13.09;
+	// p[3].y = 0;
+	// p[4].x = 9.05;
+	// p[4].y = -2.94;
+ 	// p[5].x = 10.59;
+	// p[5].y = -7.70;
+ 	// p[6].x = 6.55;
+	// p[6].y = -4.76;
+ 	// p[7].x = 2.5;
+	// p[7].y = -7.7;
+ 	// p[8].x = 4.05;
+	// p[8].y = -2.94;
+ 	// p[9].x = 0;
+	// p[9].y = 0;
 
- 	for(int i = 0; i < 10; i++) {
-		p[i].boundaryLength = 1.5;
+ 	for(int i = 0; i < 1; i++) {
+		p[i].boundaryLength = 0.1;
 		CrossRoad.push_back(p[i]);
 	}
 
@@ -109,7 +121,7 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 void aruco_listener_core::aruco_process()
 {
 	unique_lock<mutex> lck(aruco_process_lock, defer_lock);
-	
+	ros::Duration(5).sleep();
 	while(ros::ok()){
 		lck.lock();
 		
@@ -139,21 +151,26 @@ aruco_listener_core::~aruco_listener_core()
 }
 
 void aruco_listener_core::GetTargetProcess(){
+	if(IsPositionControl){
+		TargetV = PID_Q.pid_calc(Distination, CurrentCoordinate);
+		TargetV(0, 0) = fabsf(TargetV(0,0));
+	}
+
 	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, TargetV, Eigen::Vector3d(0.03, 0.03, 0.03));
 	AngularW(2, 0) = PID_Yaw.pid_calc(TargetYaw, Yaw);
 }
 
 void aruco_listener_core::DefaultProcess(){
-
-
 	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, Eigen::Vector3d::Zero(), Eigen::Vector3d(0.03, 0.03, 0.03));
 	AngularW(2, 0) = RampFunc<double>()(AngularW(2, 0), 0, 0.03);
 }
 
 void aruco_listener_core::OnSelfControl(){
-    if(fabs(CurrentCoordinate(0,0) - Distination(0,0)) <= 0.15 && fabs(CurrentCoordinate(1,0) - Distination(1,0)) <= 0.15){
-		count = (count + 1) % 10;
-        SetDistination(CrossRoad[count]);
+    if(fabs(CurrentCoordinate(0,0) - Distination(0,0)) <= 0.1 && fabs(CurrentCoordinate(1,0) - Distination(1,0)) <= 0.1){
+		TargetV(0,0) = 0;
+		IsPositionControl = false;
+		TargetYaw = 0;
+		return;
     }
 	
     bool CanPassTheCrossRoad = true;
@@ -205,24 +222,28 @@ void aruco_listener_core::OnSelfControl(){
             }
         }
 
-        if (MinDistance > 1.2) //catch up with the leader
+        if (MinDistance > 3) //catch up with the leader
         {
-            TargetV(0,0) = 0.8;
+            TargetV(0,0) = 1.2;
+			IsPositionControl = false;
         }
         else if(MinDistance == -1) // nobody to follow
         {
-			TargetV(0,0) = 0.6;
+			// TargetV(0,0) = 0.6;
+			IsPositionControl = true;
         }
         else
         {
             // following
             TargetV(0,0) = Following->v;
+			IsPositionControl = false;
         }
         
     }
     else
     {
         TargetV(0,0) = 0;
+		IsPositionControl = false;
     }
     
 }

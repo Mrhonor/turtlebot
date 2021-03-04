@@ -95,6 +95,7 @@ public:
 	int count;
 
 	bool IsGetTarget;
+    bool IsPositionControl;
 
 
 	std::mutex aruco_process_lock;
@@ -110,6 +111,7 @@ private:
 	aruco_listener_subscriber* Subscriber;
 	aruco_listener_publisher*  Publisher;
 
+    pid<Eigen::Vector3d, Limit<Eigen::Vector3d>> PID_Q;
 	pid<Eigen::Vector3d, Limit<Eigen::Vector3d>> PID_V;
 	pid<double, Limit<double>> PID_Yaw;
 

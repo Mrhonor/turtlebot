@@ -12,13 +12,18 @@ aruco_listener_subscriber::aruco_listener_subscriber(ros::NodeHandle &n, aruco_l
 	
     Subject = Subject_;
     if(Subject != nullptr){
-		string topicName = string("/") + Subject->RobotName + string("/mobile_base/sensors/imu_data");
+		string topicName = string("/mobile_base/sensors/imu_data");
 		sub_imu     = n.subscribe(topicName, 10, &aruco_listener_subscriber::aruco_imuCallback, this);
    
-		sub_gaze    = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
+		// sub_gaze    = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);
 		sub_control = n.subscribe("/robot_controller/control", 10, &aruco_listener_subscriber::aruco_controlCallback, this);
 		sub_info    = n.subscribe("/aruco_listener/robot/info", 10, &aruco_listener_subscriber::aruco_robotInfoCallback, this);
 		sub_wait    = n.subscribe("/aruco_listener/robot/wait", 10, &aruco_listener_subscriber::aruco_waitInfoCallback, this);
+
+		string odomTopicName = string("/odom");
+		
+		sub_odom    = n.subscribe(odomTopicName, 10, &aruco_listener_subscriber::aruco_odomCallback, this);
+		sub_ar 		= n.subscribe("/ar_pose_marker", 10, &aruco_listener_subscriber::aruco_arCallback, this);
     }
 }
 
@@ -59,6 +64,8 @@ void aruco_listener_subscriber::aruco_imuCallback(const sensor_msgs::Imu::ConstP
 }
 
 void aruco_listener_subscriber::aruco_gazeCallback(const gazebo_msgs::ModelStates::ConstPtr& msg){
+	return;
+
 	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
 	int id = 0;
 	auto RobotName_it = end(Subject->RobotName);
@@ -160,4 +167,27 @@ void aruco_listener_subscriber::aruco_waitInfoCallback(const aruco_listener::aru
 		}
 	}
 	
+}
+
+void aruco_listener_subscriber::aruco_odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
+	unique_lock<mutex> lck = unique_lock<mutex>(Subject->aruco_process_lock, defer_lock);
+
+	double orient_x = msg->pose.pose.orientation.x;
+	double orient_y = msg->pose.pose.orientation.y;
+	double orient_z = msg->pose.pose.orientation.z;
+	double orient_w = msg->pose.pose.orientation.w;
+	double yaw = atan2(2 * (orient_x*orient_y + orient_w*orient_z), orient_w*orient_w + orient_x*orient_x - orient_y*orient_y - orient_z*orient_z) / PI * 180;
+	
+	Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+
+	lck.lock();
+	Subject->CurrentLinearV = Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
+	Subject->CurrentCoordinate = Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+	Subject->YawSpeed = msg->twist.twist.angular.z;
+	Subject->Yaw = yaw;
+	Subject->IsGetTarget = true;
+}
+
+void aruco_listener_subscriber::aruco_arCallback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg){
+	ROS_INFO("x:%f, y:%f, z:%f", msg->markers[0].pose.pose.position.x, msg->markers[0].pose.pose.position.y, msg->markers[0].pose.pose.position.z);
 }
