@@ -11,7 +11,8 @@ aruco_listener_publisher::aruco_listener_publisher(ros::NodeHandle &n, aruco_lis
     if(Subject != nullptr){
         pub_RobotInfo = n.advertise<aruco_listener::aruco_msg>("/aruco_listener/robot/info", 10);
 
-        string MoveTopicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
+        // string MoveTopicName = string("/") + Subject->RobotName + string("/mobile_base/commands/velocity");
+        string MoveTopicName = string("/mobile_base/commands/velocity");
         pub_turtlebot_move = n.advertise<geometry_msgs::Twist>(MoveTopicName, 10);
 
         string TrajectoryTopicName = string("/") + Subject->RobotName + string("/aruco_listener/trajectory");

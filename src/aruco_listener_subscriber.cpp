@@ -12,7 +12,8 @@ aruco_listener_subscriber::aruco_listener_subscriber(ros::NodeHandle &n, aruco_l
 	
     Subject = Subject_;
     if(Subject != nullptr){
-		string topicName = string("/") + Subject->RobotName + string("/mobile_base/sensors/imu_data");
+		// string topicName = string("/") + Subject->RobotName + string("/mobile_base/sensors/imu_data");
+		string topicName = string("/mobile_base/sensors/imu_data");
 		sub_imu     = n.subscribe(topicName, 10, &aruco_listener_subscriber::aruco_imuCallback, this);
    
 		sub_gaze    = n.subscribe("/gazebo/model_states", 10, &aruco_listener_subscriber::aruco_gazeCallback, this);

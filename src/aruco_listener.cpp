@@ -90,6 +90,8 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 
  	for(int i = 0; i < 10; i++) {
 		p[i].boundaryLength = 1.5;
+		p[i].x /= 2;
+		p[i].y /= 2;
 		CrossRoad.push_back(p[i]);
 	}
 
