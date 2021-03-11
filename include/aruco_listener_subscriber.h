@@ -9,6 +9,7 @@
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/Imu.h"
 #include "aruco_listener/aruco_msg.h"
+#include "nav_msgs/Odometry.h"
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -28,6 +29,7 @@ private:
     ros::Subscriber sub_control;
     ros::Subscriber sub_info;
     ros::Subscriber sub_wait;
+    ros::Subscriber sub_odom;
 
     int sec;
     int nsec;
@@ -44,6 +46,7 @@ private:
     void aruco_controlCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
     void aruco_robotInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
     void aruco_waitInfoCallback(const aruco_listener::aruco_msg::ConstPtr& msg);
+    void aruco_odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
 };
 
 #endif

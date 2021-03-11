@@ -90,8 +90,8 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 
  	for(int i = 0; i < 10; i++) {
 		p[i].boundaryLength = 1.5;
-		p[i].x /= 2;
-		p[i].y /= 2;
+		p[i].x /= 3;
+		p[i].y /= 3;
 		CrossRoad.push_back(p[i]);
 	}
 
@@ -193,8 +193,10 @@ void aruco_listener_core::OnSelfControl(){
 	}
 	
     TargetYaw = atan2(Distination(1,0) - CurrentCoordinate(1,0), Distination(0,0) - CurrentCoordinate(0,0)) / PI * 180.0;
+	if(TargetYaw > 180) TargetYaw = TargetYaw - 360;
+	else if(TargetYaw < -180) TargetYaw = TargetYaw + 360;
 	
-    if(fabs(TargetYaw - Yaw) < 20 && CanPassTheCrossRoad){
+    if(fabs(TargetYaw - Yaw) < 15 && CanPassTheCrossRoad){
         //search others to follow
         double MinDistance = -1;
         for(auto &i : Robots){
@@ -209,11 +211,11 @@ void aruco_listener_core::OnSelfControl(){
 
         if (MinDistance > 1.2) //catch up with the leader
         {
-            TargetV(0,0) = 0.8;
+            TargetV(0,0) = 0.5;
         }
         else if(MinDistance == -1) // nobody to follow
         {
-			TargetV(0,0) = 0.6;
+			TargetV(0,0) = 0.3;
         }
         else
         {

@@ -12,8 +12,8 @@
     <param name = "kp_v"            type = "double"         value = "0.9"/>
     <param name = "ki_v"            type = "double"         value = "0.01"/>
     <param name = "kd_v"            type = "double"         value = "0.2"/>
-    <param name = "kp_yaw"            type = "double"         value = "0.005"/>
-    <param name = "ki_yaw"            type = "double"         value = "0.00005"/>
+    <param name = "kp_yaw"            type = "double"         value = "0.012"/>
+    <param name = "ki_yaw"            type = "double"         value = "0.002"/>
     <param name = "kd_yaw"            type = "double"         value = "0.14"/>
 
 
