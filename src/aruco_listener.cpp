@@ -77,7 +77,7 @@ aruco_listener_core::aruco_listener_core(ros::NodeHandle &n)
 	PID_Yaw.Outlimit = 0.6;
 
 	TurningPoint p[1];
-	p[0].x = 2.0;
+	p[0].x = 2;
 	p[0].y = 0;
 	// p[0].x = 5;
     // p[0].y = 0;
@@ -153,7 +153,7 @@ aruco_listener_core::~aruco_listener_core()
 void aruco_listener_core::GetTargetProcess(){
 	if(IsPositionControl){
 		TargetV = PID_Q.pid_calc(Distination, CurrentCoordinate);
-		TargetV(0, 0) = fabsf(TargetV(0,0));
+		TargetV(0, 0) = TargetV(0,0);
 	}
 
 	LinearV = RampFunc<Eigen::Vector3d>()(LinearV, TargetV, Eigen::Vector3d(0.03, 0.03, 0.03));
@@ -166,85 +166,9 @@ void aruco_listener_core::DefaultProcess(){
 }
 
 void aruco_listener_core::OnSelfControl(){
-    if(fabs(CurrentCoordinate(0,0) - Distination(0,0)) <= 0.1 && fabs(CurrentCoordinate(1,0) - Distination(1,0)) <= 0.1){
-		TargetV(0,0) = 0;
-		IsPositionControl = false;
-		TargetYaw = 0;
-		return;
-    }
+	TargetYaw = 0;
+	IsPositionControl = true;
 	
-    bool CanPassTheCrossRoad = true;
-	if(CurrentTurningPoint == nullptr){
-		for(auto &p : CrossRoad){
-			// check is it withing the turing points
-			if(p.IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), p.boundaryLength)){
-				CurrentTurningPoint = &p;
-				if (p.WaitQuene.size() != 0)
-				{
-					CanPassTheCrossRoad = false;
-				}
-				RobotInfo newInfo;
-				newInfo.Name = RobotName;
-				p.WaitQuene.push_back(newInfo);
-				Publisher->PublishWaitingInfo(p.x, p.y, true);
-			}
-		}
-	}
-	else
-	{
-		// check it should wait or go
-		if(CurrentTurningPoint->WaitQuene[0].Name == RobotName){
-			if(!CurrentTurningPoint->IsWithingTuringPoints(CurrentCoordinate(0,0), CurrentCoordinate(1,0), CurrentTurningPoint->boundaryLength + 0.1)){
-				Publisher->PublishWaitingInfo(CurrentTurningPoint->x, CurrentTurningPoint->y, false);
-				CurrentTurningPoint->WaitQuene.erase(CurrentTurningPoint->WaitQuene.begin());
-				CurrentTurningPoint = nullptr;
-			}
-		}
-		else
-		{
-			CanPassTheCrossRoad = false;
-		}
-		
-	}
-	
-    TargetYaw = atan2(Distination(1,0) - CurrentCoordinate(1,0), Distination(0,0) - CurrentCoordinate(0,0)) / PI * 180.0;
-	
-    if(fabs(TargetYaw - Yaw) < 20 && CanPassTheCrossRoad){
-        //search others to follow
-        double MinDistance = -1;
-        for(auto &i : Robots){
-            if(abs(i.yaw - Yaw) < 30){
-                double Distance = (i.x - CurrentCoordinate(0,0)) * cos(Yaw / 180.0 * PI) + (i.y - CurrentCoordinate(1,0)) * sin(Yaw / 180.0 * PI);  
-                if(Distance > 0 && (MinDistance == -1 || Distance < MinDistance)){
-                    MinDistance = Distance;
-                    Following = &i;
-                }
-            }
-        }
-
-        if (MinDistance > 3) //catch up with the leader
-        {
-            TargetV(0,0) = 1.2;
-			IsPositionControl = false;
-        }
-        else if(MinDistance == -1) // nobody to follow
-        {
-			// TargetV(0,0) = 0.6;
-			IsPositionControl = true;
-        }
-        else
-        {
-            // following
-            TargetV(0,0) = Following->v;
-			IsPositionControl = false;
-        }
-        
-    }
-    else
-    {
-        TargetV(0,0) = 0;
-		IsPositionControl = false;
-    }
     
 }
 
